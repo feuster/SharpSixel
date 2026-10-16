@@ -3,12 +3,18 @@ namespace Sixel.Cli;
 /// <summary>I/O channels of the CLI; replaceable in tests.</summary>
 internal sealed class CliEnvironment
 {
-    public CliEnvironment(Stream stdin, Stream stdout, TextWriter output, TextWriter error)
+    public CliEnvironment(
+        Stream stdin,
+        Stream stdout,
+        TextWriter output,
+        TextWriter error,
+        Func<bool> detectSixelTerminal)
     {
         Stdin = stdin;
         Stdout = stdout;
         Output = output;
         Error = error;
+        DetectSixelTerminal = detectSixelTerminal;
     }
 
     /// <summary>Binary standard input (used for input "-").</summary>
@@ -22,4 +28,7 @@ internal sealed class CliEnvironment
 
     /// <summary>Text output for errors.</summary>
     public TextWriter Error { get; }
+
+    /// <summary>Asks the attached terminal whether it supports sixel graphics.</summary>
+    public Func<bool> DetectSixelTerminal { get; }
 }

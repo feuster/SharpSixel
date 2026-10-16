@@ -7,6 +7,7 @@ namespace Sixel.Tests;
 public sealed class CliAppTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "sixel-cli-" + Guid.NewGuid().ToString("N"));
+    private bool _terminalSupportsSixel;
 
     public CliAppTests()
     {
@@ -25,7 +26,12 @@ public sealed class CliAppTests : IDisposable
         var stdout = new MemoryStream();
         var output = new StringWriter();
         var error = new StringWriter();
-        var env = new CliEnvironment(new MemoryStream(stdin ?? Array.Empty<byte>()), stdout, output, error);
+        var env = new CliEnvironment(
+            new MemoryStream(stdin ?? Array.Empty<byte>()),
+            stdout,
+            output,
+            error,
+            () => _terminalSupportsSixel);
         int code = CliApp.Run(args, env);
         return new Result(code, stdout.ToArray(), output.ToString(), error.ToString());
     }
@@ -125,6 +131,32 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(RedImage().Pixels, BmpCodec.Decode(File.ReadAllBytes(output)).Pixels);
+    }
+
+    [Theory]
+    [InlineData(true, 0, "supports")]
+    [InlineData(false, 1, "does not support")]
+    public void Check_ReportsTerminalCapabilityViaExitCode(bool supported, int expectedExit, string expectedText)
+    {
+        _terminalSupportsSixel = supported;
+
+        Result result = Run(null, "check");
+
+        Assert.Equal(expectedExit, result.ExitCode);
+        Assert.Contains(expectedText, result.Out);
+    }
+
+    [Fact]
+    public void Check_WithArgument_ReturnsExitCode2()
+    {
+        Assert.Equal(2, Run(null, "check", "x").ExitCode);
+    }
+
+    [Fact]
+    public void ConsoleTerminal_WithRedirectedStreams_ReportsNoSixel()
+    {
+        // Test hosts redirect stdin/stdout, so no query may be sent and the call must not block.
+        Assert.False(ConsoleTerminal.DetectSixel());
     }
 
     [Fact]

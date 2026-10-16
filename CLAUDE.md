@@ -3,9 +3,9 @@
 Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Teil einer CLI; Kern als NuGet portierbar.
 
 ## Struktur
-- `src/Sixel` – Kern, **0 Abhängigkeiten**, `netstandard2.0;net10.0`: `SixelImage`, `SixelEncoder`, `SixelDecoder`, `BmpCodec`
+- `src/Sixel` – Kern, **0 Abhängigkeiten**, `netstandard2.0;net10.0`: `SixelImage`, `SixelEncoder`, `SixelDecoder`, `BmpCodec`, `SixelTerminal` (DA1-Parser/Detect, I/O-agnostisch)
 - `src/Sixel.Skia` – SkiaSharp-Adapter (PNG/JPEG), eigenes NuGet `Sixel.Skia`
-- `src/Sixel.Cli` – `encode`/`decode` (`CliApp` testbar über `CliEnvironment`)
+- `src/Sixel.Cli` – `encode`/`decode`/`check` (`CliApp` testbar über `CliEnvironment`; `ConsoleTerminal` = Raw-Mode + Timeout für DA1)
 - `tests/Sixel.Tests` – xUnit; Docs: `Docs/all-about-sixels.txt`
 
 ## Befehle
@@ -31,6 +31,7 @@ Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Teil einer CLI; Kern als NuGet 
 - Encoder: Exakte Palette wenn ≤ MaxColors, sonst Median Cut (5-5-5-Histogramm), kein Dithering.
 
 ## Status / Offen
-- Fertig: Decoder, Encoder, BMP, Skia, CLI, lokale NuGets, 112 Tests grün.
+- Terminal-Erkennung: DA1 (`ESC [ c`), Sixel = Attribut 4 (erster Parameter = Klasse, zählt nicht). Windows (P/Invoke, VT-Input) real verifiziert; Unix-Pfad (`stty`) nur implementiert, ungetestet.
+- Fertig: Decoder, Encoder, BMP, Skia, CLI, Terminal-Check, lokale NuGets, 136 Tests grün.
 - Offen: Dithering, Performance-Messung großer Bilder, Linux-Natives für CLI (`SkiaSharp.NativeAssets.Linux`), Authors/Repo-URL in NuGet-Metadaten.
 - Lange Historie → `CLAUDE-History.md` auslagern, wenn diese Datei wächst.

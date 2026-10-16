@@ -4,7 +4,7 @@ C# encoder/decoder for sixel graphics (DECSIXEL), a CLI, and NuGet packages.
 
 | Package | Purpose |
 |---|---|
-| `Sixel` | Dependency-free core: `SixelEncoder`, `SixelDecoder`, `SixelImage`, `BmpCodec` |
+| `Sixel` | Dependency-free core: `SixelEncoder`, `SixelDecoder`, `SixelImage`, `BmpCodec`, `SixelTerminal` |
 | `Sixel.Skia` | SkiaSharp adapter for PNG/JPEG |
 | `Sixel.Cli` | Command line tool |
 
@@ -13,6 +13,7 @@ C# encoder/decoder for sixel graphics (DECSIXEL), a CLI, and NuGet packages.
 ```
 sixel encode <input> [-o <file>] [--colors <2-256>]
 sixel decode <input> -o <file>      # .bmp, .png, .jpg
+sixel check                         # exit 0 if the terminal reports sixel support (DA1)
 ```
 
 `<input>` may be `-` for stdin. `encode` without `-o` writes sixel to stdout.

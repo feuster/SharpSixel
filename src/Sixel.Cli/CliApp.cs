@@ -12,10 +12,12 @@ internal static class CliApp
         Usage:
           sixel encode <input> [-o <file>] [--colors <2-256>]
           sixel decode <input> -o <file>
+          sixel check
 
         <input>  file path, or '-' for standard input.
         encode   input: BMP, PNG, JPEG (and other Skia formats); output: sixel (default: stdout).
         decode   input: sixel; output format by extension: .bmp, .png, .jpg, .jpeg.
+        check    asks the terminal whether it supports sixel; exit code 0 = yes, 1 = no/unknown.
 
         Options:
           -o, --output <file>   output file
@@ -39,6 +41,13 @@ internal static class CliApp
             {
                 env.Output.WriteLine(typeof(CliApp).Assembly.GetName().Version?.ToString(3));
                 return 0;
+            }
+
+            if (arguments.Command == "check")
+            {
+                return arguments.Input == null
+                    ? Check(env)
+                    : throw new UsageException("'check' takes no arguments");
             }
 
             if (arguments.Command == null || arguments.Input == null)
@@ -68,6 +77,15 @@ internal static class CliApp
             env.Error.WriteLine($"error: {e.Message}");
             return 1;
         }
+    }
+
+    private static int Check(CliEnvironment env)
+    {
+        bool supported = env.DetectSixelTerminal();
+        env.Output.WriteLine(supported
+            ? "Terminal supports sixel graphics."
+            : "Terminal does not support sixel graphics (or did not answer).");
+        return supported ? 0 : 1;
     }
 
     private static void Encode(CliArguments arguments, CliEnvironment env)

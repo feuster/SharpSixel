@@ -64,7 +64,7 @@ internal sealed class CliArguments
 
         if (Command == null)
         {
-            Command = arg == "encode" || arg == "decode"
+            Command = arg == "encode" || arg == "decode" || arg == "check"
                 ? arg
                 : throw new UsageException($"unknown command '{arg}'");
         }

@@ -1,0 +1,338 @@
+using System;
+using System.Collections.Generic;
+
+namespace Sixel;
+
+internal sealed class QuantizedImage
+{
+    public QuantizedImage(SixelColor[] palette, short[] indices, bool hasTransparentPixels)
+    {
+        Palette = palette;
+        Indices = indices;
+        HasTransparentPixels = hasTransparentPixels;
+    }
+
+    public SixelColor[] Palette { get; }
+
+    /// <summary>Palette index per pixel; -1 marks a transparent pixel.</summary>
+    public short[] Indices { get; }
+
+    public bool HasTransparentPixels { get; }
+}
+
+/// <summary>Reduces an image to a palette: exact if it fits, otherwise median cut on a 5-5-5 histogram.</summary>
+internal static class ColorQuantizer
+{
+    private const int HistogramSize = 1 << 15;
+
+    public static QuantizedImage Quantize(SixelImage image, int maxColors, byte alphaThreshold)
+    {
+        return TryExactPalette(image, maxColors, alphaThreshold)
+               ?? MedianCut(image, maxColors, alphaThreshold);
+    }
+
+    private static QuantizedImage? TryExactPalette(SixelImage image, int maxColors, byte alphaThreshold)
+    {
+        byte[] px = image.Pixels;
+        int count = px.Length / SixelImage.BytesPerPixel;
+        var indices = new short[count];
+        var lookup = new Dictionary<int, int>();
+        var palette = new List<SixelColor>();
+        bool transparent = false;
+
+        for (int i = 0; i < count; i++)
+        {
+            int o = i * SixelImage.BytesPerPixel;
+            if (px[o + 3] < alphaThreshold)
+            {
+                indices[i] = -1;
+                transparent = true;
+                continue;
+            }
+
+            int key = (px[o] << 16) | (px[o + 1] << 8) | px[o + 2];
+            if (!lookup.TryGetValue(key, out int index))
+            {
+                if (palette.Count >= maxColors)
+                {
+                    return null;
+                }
+
+                index = palette.Count;
+                lookup.Add(key, index);
+                palette.Add(new SixelColor(px[o], px[o + 1], px[o + 2]));
+            }
+
+            indices[i] = (short)index;
+        }
+
+        return new QuantizedImage(palette.ToArray(), indices, transparent);
+    }
+
+    private static QuantizedImage MedianCut(SixelImage image, int maxColors, byte alphaThreshold)
+    {
+        byte[] px = image.Pixels;
+        int count = px.Length / SixelImage.BytesPerPixel;
+        var population = new long[HistogramSize];
+        var sumR = new long[HistogramSize];
+        var sumG = new long[HistogramSize];
+        var sumB = new long[HistogramSize];
+
+        for (int i = 0; i < count; i++)
+        {
+            int o = i * SixelImage.BytesPerPixel;
+            if (px[o + 3] < alphaThreshold)
+            {
+                continue;
+            }
+
+            int bin = BinOf(px[o], px[o + 1], px[o + 2]);
+            population[bin]++;
+            sumR[bin] += px[o];
+            sumG[bin] += px[o + 1];
+            sumB[bin] += px[o + 2];
+        }
+
+        var entries = new List<Entry>();
+        for (int bin = 0; bin < HistogramSize; bin++)
+        {
+            if (population[bin] > 0)
+            {
+                entries.Add(new Entry(
+                    population[bin],
+                    Average(sumR[bin], population[bin]),
+                    Average(sumG[bin], population[bin]),
+                    Average(sumB[bin], population[bin])));
+            }
+        }
+
+        SixelColor[] palette = BuildPalette(entries.ToArray(), maxColors);
+        return MapPixels(px, palette, alphaThreshold, population, sumR, sumG, sumB);
+    }
+
+    private static QuantizedImage MapPixels(
+        byte[] px,
+        SixelColor[] palette,
+        byte alphaThreshold,
+        long[] population,
+        long[] sumR,
+        long[] sumG,
+        long[] sumB)
+    {
+        int count = px.Length / SixelImage.BytesPerPixel;
+        var indices = new short[count];
+        var binToIndex = new short[HistogramSize];
+        for (int i = 0; i < binToIndex.Length; i++)
+        {
+            binToIndex[i] = -1;
+        }
+
+        bool transparent = false;
+        for (int i = 0; i < count; i++)
+        {
+            int o = i * SixelImage.BytesPerPixel;
+            if (px[o + 3] < alphaThreshold)
+            {
+                indices[i] = -1;
+                transparent = true;
+                continue;
+            }
+
+            int bin = BinOf(px[o], px[o + 1], px[o + 2]);
+            if (binToIndex[bin] < 0)
+            {
+                binToIndex[bin] = Nearest(
+                    palette,
+                    Average(sumR[bin], population[bin]),
+                    Average(sumG[bin], population[bin]),
+                    Average(sumB[bin], population[bin]));
+            }
+
+            indices[i] = binToIndex[bin];
+        }
+
+        return new QuantizedImage(palette, indices, transparent);
+    }
+
+    private static SixelColor[] BuildPalette(Entry[] entries, int maxColors)
+    {
+        var boxes = new List<Box> { Box.Create(entries, 0, entries.Length) };
+        while (boxes.Count < maxColors)
+        {
+            int best = -1;
+            int bestRange = 0;
+            for (int i = 0; i < boxes.Count; i++)
+            {
+                if (boxes[i].Length > 1 && boxes[i].Range > bestRange)
+                {
+                    best = i;
+                    bestRange = boxes[i].Range;
+                }
+            }
+
+            if (best < 0)
+            {
+                break;
+            }
+
+            Box box = boxes[best];
+            Array.Sort(entries, box.Start, box.Length, new ChannelComparer(box.Channel));
+            int split = FindMedianSplit(entries, box);
+            boxes[best] = Box.Create(entries, box.Start, split);
+            boxes.Add(Box.Create(entries, split, box.End));
+        }
+
+        var palette = new SixelColor[boxes.Count];
+        for (int i = 0; i < palette.Length; i++)
+        {
+            palette[i] = AverageColor(entries, boxes[i]);
+        }
+
+        return palette;
+    }
+
+    private static int FindMedianSplit(Entry[] entries, Box box)
+    {
+        long total = 0;
+        for (int i = box.Start; i < box.End; i++)
+        {
+            total += entries[i].Count;
+        }
+
+        long accumulated = 0;
+        int split = box.Start + 1;
+        for (int i = box.Start; i < box.End - 1; i++)
+        {
+            accumulated += entries[i].Count;
+            split = i + 1;
+            if (accumulated * 2 >= total)
+            {
+                break;
+            }
+        }
+
+        return split;
+    }
+
+    private static SixelColor AverageColor(Entry[] entries, Box box)
+    {
+        long weight = 0;
+        long r = 0;
+        long g = 0;
+        long b = 0;
+        for (int i = box.Start; i < box.End; i++)
+        {
+            weight += entries[i].Count;
+            r += entries[i].R * entries[i].Count;
+            g += entries[i].G * entries[i].Count;
+            b += entries[i].B * entries[i].Count;
+        }
+
+        return new SixelColor((byte)Average(r, weight), (byte)Average(g, weight), (byte)Average(b, weight));
+    }
+
+    private static short Nearest(SixelColor[] palette, int r, int g, int b)
+    {
+        int best = 0;
+        int bestDistance = int.MaxValue;
+        for (int i = 0; i < palette.Length; i++)
+        {
+            int dr = r - palette[i].R;
+            int dg = g - palette[i].G;
+            int db = b - palette[i].B;
+            int distance = dr * dr + dg * dg + db * db;
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+
+        return (short)best;
+    }
+
+    private static int BinOf(byte r, byte g, byte b) => ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+
+    private static int Average(long sum, long weight) => (int)((sum + weight / 2) / weight);
+
+    private readonly struct Entry
+    {
+        public Entry(long count, int r, int g, int b)
+        {
+            Count = count;
+            R = r;
+            G = g;
+            B = b;
+        }
+
+        public long Count { get; }
+
+        public int R { get; }
+
+        public int G { get; }
+
+        public int B { get; }
+
+        public int Get(int channel) => channel == 0 ? R : channel == 1 ? G : B;
+    }
+
+    private readonly struct Box
+    {
+        private Box(int start, int end, int channel, int range)
+        {
+            Start = start;
+            End = end;
+            Channel = channel;
+            Range = range;
+        }
+
+        public int Start { get; }
+
+        public int End { get; }
+
+        public int Length => End - Start;
+
+        /// <summary>Channel (0 = R, 1 = G, 2 = B) with the widest spread.</summary>
+        public int Channel { get; }
+
+        /// <summary>Spread of <see cref="Channel"/>.</summary>
+        public int Range { get; }
+
+        public static Box Create(Entry[] entries, int start, int end)
+        {
+            int bestChannel = 0;
+            int bestRange = 0;
+            for (int channel = 0; channel < 3; channel++)
+            {
+                int min = int.MaxValue;
+                int max = int.MinValue;
+                for (int i = start; i < end; i++)
+                {
+                    int value = entries[i].Get(channel);
+                    min = Math.Min(min, value);
+                    max = Math.Max(max, value);
+                }
+
+                if (max - min > bestRange)
+                {
+                    bestRange = max - min;
+                    bestChannel = channel;
+                }
+            }
+
+            return new Box(start, end, bestChannel, bestRange);
+        }
+    }
+
+    private sealed class ChannelComparer : IComparer<Entry>
+    {
+        private readonly int _channel;
+
+        public ChannelComparer(int channel)
+        {
+            _channel = channel;
+        }
+
+        public int Compare(Entry x, Entry y) => x.Get(_channel).CompareTo(y.Get(_channel));
+    }
+}

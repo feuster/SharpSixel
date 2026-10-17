@@ -25,10 +25,10 @@ internal static class ColorQuantizer
 {
     private const int HistogramSize = 1 << 15;
 
-    public static QuantizedImage Quantize(SixelImage image, int maxColors, byte alphaThreshold, bool dither)
+    public static QuantizedImage Quantize(SixelImage image, int maxColors, byte alphaThreshold, SixelDithering dithering)
     {
         return TryExactPalette(image, maxColors, alphaThreshold)
-               ?? MedianCut(image, maxColors, alphaThreshold, dither);
+               ?? MedianCut(image, maxColors, alphaThreshold, dithering);
     }
 
     private static QuantizedImage? TryExactPalette(SixelImage image, int maxColors, byte alphaThreshold)
@@ -69,7 +69,7 @@ internal static class ColorQuantizer
         return new QuantizedImage(palette.ToArray(), indices, transparent);
     }
 
-    private static QuantizedImage MedianCut(SixelImage image, int maxColors, byte alphaThreshold, bool dither)
+    private static QuantizedImage MedianCut(SixelImage image, int maxColors, byte alphaThreshold, SixelDithering dithering)
     {
         byte[] px = image.Pixels;
         int count = px.Length / SixelImage.BytesPerPixel;
@@ -107,23 +107,25 @@ internal static class ColorQuantizer
         }
 
         SixelColor[] palette = BuildPalette(entries.ToArray(), maxColors);
-        return dither
-            ? MapPixelsDithered(image, palette, alphaThreshold)
-            : MapPixels(px, palette, alphaThreshold, population, sumR, sumG, sumB);
+        switch (dithering)
+        {
+            case SixelDithering.FloydSteinberg:
+                return MapPixelsFloydSteinberg(image, palette, alphaThreshold);
+            case SixelDithering.Ordered:
+                return MapPixelsOrdered(image, palette, alphaThreshold);
+            default:
+                return MapPixels(px, palette, alphaThreshold, population, sumR, sumG, sumB);
+        }
     }
 
     /// <summary>Floyd-Steinberg error diffusion; transparent pixels neither receive nor spread error.</summary>
-    private static QuantizedImage MapPixelsDithered(SixelImage image, SixelColor[] palette, byte alphaThreshold)
+    private static QuantizedImage MapPixelsFloydSteinberg(SixelImage image, SixelColor[] palette, byte alphaThreshold)
     {
         const int Channels = 3;
         int width = image.Width;
         byte[] px = image.Pixels;
         var indices = new short[width * image.Height];
-        var nearestByBin = new short[HistogramSize];
-        for (int i = 0; i < nearestByBin.Length; i++)
-        {
-            nearestByBin[i] = -1;
-        }
+        var nearest = new NearestColorCache(palette);
 
         // One padding column on each side keeps the diffusion free of bounds checks.
         var current = new float[(width + 2) * Channels];
@@ -149,13 +151,7 @@ internal static class ColorQuantizer
                 int g = ClampToByte(px[o + 1] + current[e + 1]);
                 int b = ClampToByte(px[o + 2] + current[e + 2]);
 
-                int bin = BinOf((byte)r, (byte)g, (byte)b);
-                if (nearestByBin[bin] < 0)
-                {
-                    nearestByBin[bin] = Nearest(palette, (r & ~7) + 4, (g & ~7) + 4, (b & ~7) + 4);
-                }
-
-                short index = nearestByBin[bin];
+                short index = nearest.Find(r, g, b);
                 indices[pixel] = index;
                 Diffuse(current, next, e, r - palette[index].R, g - palette[index].G, b - palette[index].B);
             }
@@ -166,6 +162,77 @@ internal static class ColorQuantizer
         }
 
         return new QuantizedImage(palette, indices, transparent);
+    }
+
+    /// <summary>Ordered dithering: a position dependent Bayer offset is added before the nearest-color lookup.</summary>
+    private static QuantizedImage MapPixelsOrdered(SixelImage image, SixelColor[] palette, byte alphaThreshold)
+    {
+        int width = image.Width;
+        byte[] px = image.Pixels;
+        var indices = new short[width * image.Height];
+        var nearest = new NearestColorCache(palette);
+        double spread = AverageChannelSpacing(palette);
+        bool transparent = false;
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int pixel = y * width + x;
+                int o = pixel * SixelImage.BytesPerPixel;
+                if (px[o + 3] < alphaThreshold)
+                {
+                    indices[pixel] = -1;
+                    transparent = true;
+                    continue;
+                }
+
+                double offset = BayerMatrix.Threshold(x, y) * spread;
+                indices[pixel] = nearest.Find(
+                    ApplyOffset(px[o], offset),
+                    ApplyOffset(px[o + 1], offset),
+                    ApplyOffset(px[o + 2], offset));
+            }
+        }
+
+        return new QuantizedImage(palette, indices, transparent);
+    }
+
+    /// <summary>Typical step between palette colors per channel: mean nearest-neighbor distance divided by sqrt(3).</summary>
+    private static double AverageChannelSpacing(SixelColor[] palette)
+    {
+        if (palette.Length < 2)
+        {
+            return 0;
+        }
+
+        double sum = 0;
+        for (int i = 0; i < palette.Length; i++)
+        {
+            int best = int.MaxValue;
+            for (int j = 0; j < palette.Length; j++)
+            {
+                if (i == j)
+                {
+                    continue;
+                }
+
+                int dr = palette[i].R - palette[j].R;
+                int dg = palette[i].G - palette[j].G;
+                int db = palette[i].B - palette[j].B;
+                best = Math.Min(best, dr * dr + dg * dg + db * db);
+            }
+
+            sum += Math.Sqrt(best);
+        }
+
+        return Math.Min(sum / palette.Length / Math.Sqrt(3), 255);
+    }
+
+    private static int ApplyOffset(byte value, double offset)
+    {
+        double shifted = value + offset;
+        return shifted < 0 ? 0 : shifted > 255 ? 255 : (int)(shifted + 0.5);
     }
 
     private static void Diffuse(float[] current, float[] next, int e, int errorR, int errorG, int errorB)
@@ -396,6 +463,33 @@ internal static class ColorQuantizer
             }
 
             return new Box(start, end, bestChannel, bestRange);
+        }
+    }
+
+    /// <summary>Caches the nearest palette entry per 5-5-5 color bin.</summary>
+    private sealed class NearestColorCache
+    {
+        private readonly SixelColor[] _palette;
+        private readonly short[] _byBin = new short[HistogramSize];
+
+        public NearestColorCache(SixelColor[] palette)
+        {
+            _palette = palette;
+            for (int i = 0; i < _byBin.Length; i++)
+            {
+                _byBin[i] = -1;
+            }
+        }
+
+        public short Find(int r, int g, int b)
+        {
+            int bin = BinOf((byte)r, (byte)g, (byte)b);
+            if (_byBin[bin] < 0)
+            {
+                _byBin[bin] = Nearest(_palette, (r & ~7) + 4, (g & ~7) + 4, (b & ~7) + 4);
+            }
+
+            return _byBin[bin];
         }
     }
 

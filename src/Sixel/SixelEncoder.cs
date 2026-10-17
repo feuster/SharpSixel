@@ -45,7 +45,7 @@ public sealed class SixelEncoder
             image,
             _options.MaxColors,
             _options.AlphaThreshold,
-            _options.Dithering == SixelDithering.FloydSteinberg);
+            _options.Dithering);
         var sb = new StringBuilder();
         AppendHeader(sb, image, quantized);
         AppendPalette(sb, quantized.Palette);

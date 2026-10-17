@@ -20,7 +20,7 @@ internal sealed class CliArguments
 
     public int Colors { get; private set; } = 256;
 
-    public bool Dither { get; private set; }
+    public SixelDithering Dithering { get; private set; }
 
     public int? Width { get; private set; }
 
@@ -66,7 +66,7 @@ internal sealed class CliArguments
                     result.Upscale = true;
                     break;
                 case "--dither":
-                    result.Dither = true;
+                    result.Dithering = ParseDithering(args, ref i);
                     break;
                 case "--colors":
                     result.Colors = ParseColors(RequireValue(args, ref i, arg));
@@ -111,6 +111,39 @@ internal sealed class CliArguments
         }
 
         return args[++index];
+    }
+
+    /// <summary>Reads the optional mode after --dither; a bare --dither selects Floyd-Steinberg.</summary>
+    private static SixelDithering ParseDithering(string[] args, ref int index)
+    {
+        if (index + 1 < args.Length && TryParseDitherMode(args[index + 1], out SixelDithering mode))
+        {
+            index++;
+            return mode;
+        }
+
+        return SixelDithering.FloydSteinberg;
+    }
+
+    private static bool TryParseDitherMode(string name, out SixelDithering mode)
+    {
+        switch (name)
+        {
+            case "none":
+                mode = SixelDithering.None;
+                return true;
+            case "floyd":
+            case "floyd-steinberg":
+                mode = SixelDithering.FloydSteinberg;
+                return true;
+            case "bayer":
+            case "ordered":
+                mode = SixelDithering.Ordered;
+                return true;
+            default:
+                mode = SixelDithering.None;
+                return false;
+        }
     }
 
     private static int ParsePositive(string value, string option)

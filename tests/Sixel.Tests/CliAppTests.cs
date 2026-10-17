@@ -127,6 +127,71 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(height, decoded.Height);
     }
 
+    private string WriteGradientBmp()
+    {
+        var image = new SixelImage(32, 6);
+        for (int x = 0; x < 32; x++)
+        {
+            for (int y = 0; y < 6; y++)
+            {
+                image.SetPixel(x, y, new SixelColor((byte)(x * 8), (byte)(x * 8), (byte)(x * 8)));
+            }
+        }
+
+        string path = PathOf("gradient2.bmp");
+        File.WriteAllBytes(path, BmpCodec.Encode(image));
+        return path;
+    }
+
+    [Theory]
+    [InlineData("bayer")]
+    [InlineData("ordered")]
+    [InlineData("floyd")]
+    [InlineData("floyd-steinberg")]
+    public void Encode_DitherMode_DiffersFromPlainReduction(string mode)
+    {
+        string input = WriteGradientBmp();
+        byte[] plain = Run(null, "encode", input, "--colors", "2").Stdout;
+
+        Result result = Run(null, "encode", input, "--colors", "2", "--dither", mode);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.NotEqual(plain, result.Stdout);
+    }
+
+    [Fact]
+    public void Encode_DitherNone_EqualsPlainReduction()
+    {
+        string input = WriteGradientBmp();
+
+        byte[] plain = Run(null, "encode", input, "--colors", "2").Stdout;
+        byte[] none = Run(null, "encode", input, "--colors", "2", "--dither", "none").Stdout;
+
+        Assert.Equal(plain, none);
+    }
+
+    [Fact]
+    public void Encode_BayerAndFloyd_ProduceDifferentOutput()
+    {
+        string input = WriteGradientBmp();
+
+        byte[] bayer = Run(null, "encode", input, "--colors", "2", "--dither", "bayer").Stdout;
+        byte[] floyd = Run(null, "encode", input, "--colors", "2", "--dither", "floyd").Stdout;
+
+        Assert.NotEqual(bayer, floyd);
+    }
+
+    [Fact]
+    public void Encode_BareDitherBeforeOtherOption_DefaultsToFloydSteinberg()
+    {
+        string input = WriteGradientBmp();
+
+        byte[] bare = Run(null, "encode", input, "--dither", "--colors", "2").Stdout;
+        byte[] floyd = Run(null, "encode", input, "--colors", "2", "--dither", "floyd").Stdout;
+
+        Assert.Equal(floyd, bare);
+    }
+
     [Fact]
     public void Encode_UpscaleOption_EnlargesToLimit()
     {

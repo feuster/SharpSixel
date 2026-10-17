@@ -14,7 +14,7 @@ public sealed class SixelEncoderOptions
     /// <summary>Emit the raster attributes command with aspect ratio and image size. Default true.</summary>
     public bool EmitRasterAttributes { get; set; } = true;
 
-    /// <summary>Error diffusion used when the image has more colors than <see cref="MaxColors"/>. Default none.</summary>
+    /// <summary>Dithering used when the image has more colors than <see cref="MaxColors"/>. Default none.</summary>
     public SixelDithering Dithering { get; set; } = SixelDithering.None;
 
     internal void Validate()

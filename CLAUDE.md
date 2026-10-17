@@ -28,12 +28,12 @@ Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Teil einer CLI; Kern als NuGet 
 - Größe: max(Raster Ph/Pv, Daten); deklarierte Höhe kürzt nur das Padding des letzten Bands.
 - Ohne `#`-Auswahl: Vordergrund weiß. Register ≥ N: modulo. VT340-Defaultpalette aus Implementierungen, nur Register 1 verifiziert.
 - Decoder-Limits (Breite/Höhe 16384, 64 Mi Pixel) gegen DoS durch `!`-Repeat/Raster.
-- Encoder: Exakte Palette wenn ≤ MaxColors, sonst Median Cut (5-5-5-Histogramm); optional Floyd-Steinberg (`SixelDithering`, CLI `--dither`), nur bei Farbreduktion, Transparenz bleibt unberührt.
+- Encoder: Exakte Palette wenn ≤ MaxColors, sonst Median Cut (5-5-5-Histogramm); Dithering (`SixelDithering`: None/FloydSteinberg/Ordered, CLI `--dither [floyd|bayer|none]`, bare `--dither` = floyd), nur bei Farbreduktion, Transparenz bleibt unberührt. Ordered = 8x8-Bayer, Streuung = mittlerer Nearest-Neighbor-Palettenabstand/√3 (max 255); Nearest-Lookup über 5-5-5-Bin-Cache.
 
 ## Status / Offen
 - Größenanpassung: `ImageScaler` (Flächenmittel beim Verkleinern, bilinear beim Vergrößern, alpha-gewichtet). CLI `--width/--height` (fit, nur verkleinern), `--upscale`, `--fit` = Terminalbereich; explizite Achse hat Vorrang. Terminalbereich: `CSI 14 t` (Textbereich px) bzw. `CSI 16 t` (Zelle px) × Konsolenzellen, sonst geschätzt 10x20 (Warnung auf stderr); Höhe minus eine Zeile. Abfrage `CSI 14t CSI 16t CSI c` in einem Rutsch, DA1 als Sentinel (kein Timeout bei Terminals ohne Support).
 - Terminal-Erkennung: DA1 (`ESC [ c`), Sixel = Attribut 4 (erster Parameter = Klasse, zählt nicht). Windows (P/Invoke, VT-Input) real verifiziert; Unix-Pfad (`stty`) nur implementiert, ungetestet.
-- Fertig: Decoder, Encoder (+Dithering), BMP, Skia, CLI, Terminal-Check, Skalierung/`--fit`, lokale NuGets, 188 Tests grün. `--fit` unter Windows Terminal real verifiziert (120x30 Zellen → 3000x2000 wird 870x580).
-- Performance (Release, net10.0, 3840x2160 verrauscht): Encode ~95 ms, mit Dithering ~210 ms, Decode ~150 ms.
+- Fertig: Decoder, Encoder (+Dithering), BMP, Skia, CLI, Terminal-Check, Skalierung/`--fit`, lokale NuGets, 205 Tests grün. `--fit` unter Windows Terminal real verifiziert (120x30 Zellen → 3000x2000 wird 870x580).
+- Performance (Release, net10.0, 3840x2160 verrauscht): Encode ~120 ms, Floyd-Steinberg ~220 ms, Bayer ~130 ms (Bayer-Ausgabe ~25 % kleiner als Floyd), Decode ~150 ms.
 - Offen: Linux-Natives für CLI (`SkiaSharp.NativeAssets.Linux`), Unix-Pfad von `check`/`--fit` testen. NuGet-Metadaten (Autor/Repo-URL) bewusst offen (Nutzerentscheidung), Pakete nur lokal packen.
 - Lange Historie → `CLAUDE-History.md` auslagern, wenn diese Datei wächst.

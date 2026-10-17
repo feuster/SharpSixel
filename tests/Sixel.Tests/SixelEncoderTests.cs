@@ -264,12 +264,14 @@ public class SixelEncoderTests
         Assert.Equal(1, Transitions(decoded, 0));
     }
 
-    [Fact]
-    public void Dithering_FloydSteinberg_MixesColorsAndPreservesAverageBrightness()
+    [Theory]
+    [InlineData(SixelDithering.FloydSteinberg)]
+    [InlineData(SixelDithering.Ordered)]
+    public void Dithering_MixesColorsAndPreservesAverageBrightness(SixelDithering dithering)
     {
         SixelImage original = GrayGradient(64, 8);
 
-        SixelImage decoded = RoundTrip(original, SixelDithering.FloydSteinberg, 2);
+        SixelImage decoded = RoundTrip(original, dithering, 2);
 
         Assert.True(Transitions(decoded, 3) > 3);
         double originalMean = Enumerable.Range(0, 64).Average(x => (double)original.GetPixel(x, 0).R);
@@ -277,8 +279,10 @@ public class SixelEncoderTests
         Assert.InRange(Math.Abs(decodedMean - originalMean), 0, 15);
     }
 
-    [Fact]
-    public void Dithering_ExactPalette_StaysLossless()
+    [Theory]
+    [InlineData(SixelDithering.FloydSteinberg)]
+    [InlineData(SixelDithering.Ordered)]
+    public void Dithering_ExactPalette_StaysLossless(SixelDithering dithering)
     {
         var image = new SixelImage(4, 2);
         SixelColor[] colors = { Red, Blue, new(0, 255, 0), SixelColor.Black };
@@ -287,21 +291,59 @@ public class SixelEncoderTests
             image.SetPixel(i % 4, i / 4, colors[(i * 3) % 4]);
         }
 
-        SixelImage decoded = RoundTrip(image, SixelDithering.FloydSteinberg, 8);
+        SixelImage decoded = RoundTrip(image, dithering, 8);
 
         Assert.Equal(image.Pixels, decoded.Pixels);
     }
 
-    [Fact]
-    public void Dithering_KeepsTransparentPixelsTransparent()
+    [Theory]
+    [InlineData(SixelDithering.FloydSteinberg)]
+    [InlineData(SixelDithering.Ordered)]
+    public void Dithering_KeepsTransparentPixelsTransparent(SixelDithering dithering)
     {
         SixelImage image = GrayGradient(16, 16);
         image.SetPixel(3, 3, SixelColor.Transparent);
 
-        SixelImage decoded = RoundTrip(image, SixelDithering.FloydSteinberg, 4);
+        SixelImage decoded = RoundTrip(image, dithering, 4);
 
         Assert.Equal(0, decoded.GetPixel(3, 3).A);
         Assert.Equal(255, decoded.GetPixel(4, 3).A);
+    }
+
+    [Fact]
+    public void Dithering_Ordered_IsPeriodicWithBayerSize()
+    {
+        SixelImage decoded = RoundTrip(GrayGradient(64, 16), SixelDithering.Ordered, 2);
+
+        for (int x = 0; x < 64; x++)
+        {
+            Assert.Equal(decoded.GetPixel(x, 1), decoded.GetPixel(x, 9));
+        }
+
+        Assert.NotEqual(decoded.GetPixel(30, 0), decoded.GetPixel(30, 1));
+    }
+
+    [Fact]
+    public void Dithering_Ordered_IsDeterministic()
+    {
+        SixelImage image = GrayGradient(64, 16);
+        var ordered = new SixelEncoder(new SixelEncoderOptions { MaxColors = 2, Dithering = SixelDithering.Ordered });
+
+        Assert.Equal(ordered.Encode(image), ordered.Encode(image));
+    }
+
+    [Fact]
+    public void Dithering_Ordered_UsesOnlyPaletteColors()
+    {
+        SixelImage decoded = RoundTrip(GrayGradient(64, 8), SixelDithering.Ordered, 4);
+
+        var distinct = new HashSet<SixelColor>();
+        for (int x = 0; x < 64; x++)
+        {
+            distinct.Add(decoded.GetPixel(x, 2));
+        }
+
+        Assert.InRange(distinct.Count, 2, 4);
     }
 
     [Fact]

@@ -10,7 +10,7 @@ internal static class CliApp
 
     private const string Usage = """
         Usage:
-          sixel encode <input> [-o <file>] [--colors <2-256>] [--dither]
+          sixel encode <input> [-o <file>] [--colors <2-256>] [--dither [floyd|bayer|none]]
                        [--width <px>] [--height <px>] [--fit] [--upscale]
           sixel decode <input> -o <file>
           sixel check
@@ -23,7 +23,8 @@ internal static class CliApp
         Options:
           -o, --output <file>   output file
           --colors <n>          maximum palette colors for encode (default 256)
-          --dither              Floyd-Steinberg dithering for encode when colors are reduced
+          --dither [mode]       dithering for encode when colors are reduced: floyd (default if no mode
+                                is given, Floyd-Steinberg), bayer (ordered 8x8) or none
           --width <px>          fit the image into this width (keeps aspect ratio)
           --height <px>         fit the image into this height (keeps aspect ratio)
           --fit                 fit into the terminal's drawable area (needs a terminal on stdin/stdout);
@@ -103,7 +104,7 @@ internal static class CliApp
         var encoder = new SixelEncoder(new SixelEncoderOptions
         {
             MaxColors = arguments.Colors,
-            Dithering = arguments.Dither ? SixelDithering.FloydSteinberg : SixelDithering.None,
+            Dithering = arguments.Dithering,
         });
         WriteOutput(arguments.Output, encoder.EncodeToBytes(image), env);
     }

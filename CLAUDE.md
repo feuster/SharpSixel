@@ -11,14 +11,14 @@ Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Teil einer CLI; Kern als NuGet 
 ## Befehle
 - Test: `dotnet test`
 - Pack (lokal, kein Publish): `dotnet pack src/Sixel -c Release -o artifacts/nupkg` (ebenso `src/Sixel.Skia`)
-- CLI: `dotnet run --project src/Sixel.Cli -- encode in.bmp -o out.six`
+- Publish (win-x64, self-contained Single-File, komprimiert, nach `publish/sixel.exe`, gitignored): `./publish.ps1` bzw. `dotnet publish src/Sixel.Cli -p:PublishProfile=win-x64`\n- CLI: `dotnet run --project src/Sixel.Cli -- encode in.bmp -o out.six`
 
 ## Regeln
 - Keine neuen NuGets ohne Rückfrage (MIT bevorzugt). SkiaSharp (MIT) ist freigegeben, nur in Skia/CLI.
 - Kern netstandard2.0-kompatibel: kein Span/System.Memory, kein `init`/`record`.
 - Bibliotheks-/CLI-Code und Kommentare englisch; Chat deutsch, knapp.
 - Clean Code, kleine Klassen; Fehler vor neuen Features beheben; Public API mit XML-Doku (TreatWarningsAsErrors).
-- Pixelformat: RGBA8888, straight alpha, zeilenweise.
+- Publish: Profil `src/Sixel.Cli/Properties/PublishProfiles/win-x64.pubxml` (nur beim Publish aktiv, kein RID im Projekt, sonst Tests/Referenzen betroffen); SkiaSharp-Native im Bundle (`IncludeNativeLibrariesForSelfExtract`, Entpacken beim 1. Start nach %TEMP%\.net), PDBs entfernt, Exe heißt `sixel.exe`. Kein Trimming (Skia/P-Invoke-Risiko). ~41 MB komprimiert (83 MB unkomprimiert, +~30 ms Start).\n- Pixelformat: RGBA8888, straight alpha, zeilenweise.
 
 ## Spec-Entscheidungen
 - P1-Tabelle nach VT330/340-Handbuch (0/1→2:1, 2→5:1, 3/4→3:1, 5/6→2:1, 7-9→1:1). `Docs/all-about-sixels.txt` nennt abweichend 0/1→5:1, 2→3:1 (veraltet).

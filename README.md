@@ -31,4 +31,10 @@ dotnet pack src/Sixel -c Release -o artifacts/nupkg
 dotnet pack src/Sixel.Skia -c Release -o artifacts/nupkg
 ```
 
+## Standalone executable
+
+```powershell
+./publish.ps1     # -> publish/sixel.exe (win-x64, self-contained, single file, no .NET install needed)
+```
+
 Licensed under MIT.

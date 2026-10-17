@@ -17,3 +17,4 @@ Ausgelagerte, nicht mehr aktuelle Informationen aus `CLAUDE.md`.
 ## 2026-10-17 – Umbenennung SharpSixel
 - Projekt/Solution/Assemblies/Namespaces/Pakete: Sixel -> SharpSixel (SharpSixel, SharpSixel.Skia, SharpSixel.Cli, SharpSixel.Tests); Exe SharpSixel.exe; Typnamen Sixel* unverändert. Repo-Ordner C:\ai\Sixel unverändert.
 - Autor/Copyright (Props, LICENSE): Alexander Feuster. Publish/Pack nur Release (Guard in Directory.Build.targets). Docs/README.txt wird beim Publish nach publish/ kopiert.
+- Root-Ordner `C:\ai\Sixel` -> `C:\ai\SharpSixel` umbenannt (Rename-Item, Git-Historie unverändert); bin/obj neu gebaut, da sie absolute Pfade enthalten.

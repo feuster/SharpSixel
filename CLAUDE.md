@@ -1,7 +1,7 @@
 # SharpSixel – Sixel Encoder/Decoder (C#)
 
 Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Autor: Alexander Feuster, MIT. Teil einer CLI; Kern als NuGet portierbar.
-Repo-Ordner heißt weiterhin `C:\ai\Sixel` (nur Projekt/Assemblies/Pakete wurden zu SharpSixel umbenannt).
+Repo-Ordner: `C:\ai\SharpSixel` (vorher `C:\ai\Sixel`).
 
 ## Struktur
 - `src/SharpSixel` – Kern, **0 Abhängigkeiten**, `netstandard2.0;net10.0`: `SixelImage`, `SixelEncoder`, `SixelDecoder`, `BmpCodec`, `ImageScaler`, `SixelTerminal` (DA1 + Pixelgröße, I/O-agnostisch). Namespace `SharpSixel`; Typnamen `Sixel*` bleiben (Format).

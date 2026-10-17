@@ -100,6 +100,29 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(4, new SixelDecoder().Decode(result.Stdout).Width);
     }
 
+    [Fact]
+    public void Encode_DitherOption_ReducesColorsWithErrorDiffusion()
+    {
+        var image = new SixelImage(32, 6);
+        for (int x = 0; x < 32; x++)
+        {
+            for (int y = 0; y < 6; y++)
+            {
+                image.SetPixel(x, y, new SixelColor((byte)(x * 8), (byte)(x * 8), (byte)(x * 8)));
+            }
+        }
+
+        string input = PathOf("gradient.bmp");
+        File.WriteAllBytes(input, BmpCodec.Encode(image));
+
+        SixelImage plain = new SixelDecoder().Decode(Run(null, "encode", input, "--colors", "2").Stdout);
+        Result dithered = Run(null, "encode", input, "--colors", "2", "--dither");
+
+        Assert.Equal(0, dithered.ExitCode);
+        SixelImage ditheredImage = new SixelDecoder().Decode(dithered.Stdout);
+        Assert.NotEqual(plain.Pixels, ditheredImage.Pixels);
+    }
+
     [Theory]
     [InlineData("out.bmp")]
     [InlineData("out.png")]

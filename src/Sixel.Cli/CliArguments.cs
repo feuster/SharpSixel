@@ -20,6 +20,8 @@ internal sealed class CliArguments
 
     public int Colors { get; private set; } = 256;
 
+    public bool Dither { get; private set; }
+
     public bool Help { get; private set; }
 
     public bool Version { get; private set; }
@@ -42,6 +44,9 @@ internal sealed class CliArguments
                 case "-o":
                 case "--output":
                     result.Output = RequireValue(args, ref i, arg);
+                    break;
+                case "--dither":
+                    result.Dither = true;
                     break;
                 case "--colors":
                     result.Colors = ParseColors(RequireValue(args, ref i, arg));

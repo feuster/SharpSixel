@@ -25,10 +25,10 @@ internal static class ColorQuantizer
 {
     private const int HistogramSize = 1 << 15;
 
-    public static QuantizedImage Quantize(SixelImage image, int maxColors, byte alphaThreshold)
+    public static QuantizedImage Quantize(SixelImage image, int maxColors, byte alphaThreshold, bool dither)
     {
         return TryExactPalette(image, maxColors, alphaThreshold)
-               ?? MedianCut(image, maxColors, alphaThreshold);
+               ?? MedianCut(image, maxColors, alphaThreshold, dither);
     }
 
     private static QuantizedImage? TryExactPalette(SixelImage image, int maxColors, byte alphaThreshold)
@@ -69,7 +69,7 @@ internal static class ColorQuantizer
         return new QuantizedImage(palette.ToArray(), indices, transparent);
     }
 
-    private static QuantizedImage MedianCut(SixelImage image, int maxColors, byte alphaThreshold)
+    private static QuantizedImage MedianCut(SixelImage image, int maxColors, byte alphaThreshold, bool dither)
     {
         byte[] px = image.Pixels;
         int count = px.Length / SixelImage.BytesPerPixel;
@@ -107,8 +107,83 @@ internal static class ColorQuantizer
         }
 
         SixelColor[] palette = BuildPalette(entries.ToArray(), maxColors);
-        return MapPixels(px, palette, alphaThreshold, population, sumR, sumG, sumB);
+        return dither
+            ? MapPixelsDithered(image, palette, alphaThreshold)
+            : MapPixels(px, palette, alphaThreshold, population, sumR, sumG, sumB);
     }
+
+    /// <summary>Floyd-Steinberg error diffusion; transparent pixels neither receive nor spread error.</summary>
+    private static QuantizedImage MapPixelsDithered(SixelImage image, SixelColor[] palette, byte alphaThreshold)
+    {
+        const int Channels = 3;
+        int width = image.Width;
+        byte[] px = image.Pixels;
+        var indices = new short[width * image.Height];
+        var nearestByBin = new short[HistogramSize];
+        for (int i = 0; i < nearestByBin.Length; i++)
+        {
+            nearestByBin[i] = -1;
+        }
+
+        // One padding column on each side keeps the diffusion free of bounds checks.
+        var current = new float[(width + 2) * Channels];
+        var next = new float[(width + 2) * Channels];
+        bool transparent = false;
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            Array.Clear(next, 0, next.Length);
+            for (int x = 0; x < width; x++)
+            {
+                int pixel = y * width + x;
+                int o = pixel * SixelImage.BytesPerPixel;
+                if (px[o + 3] < alphaThreshold)
+                {
+                    indices[pixel] = -1;
+                    transparent = true;
+                    continue;
+                }
+
+                int e = (x + 1) * Channels;
+                int r = ClampToByte(px[o] + current[e]);
+                int g = ClampToByte(px[o + 1] + current[e + 1]);
+                int b = ClampToByte(px[o + 2] + current[e + 2]);
+
+                int bin = BinOf((byte)r, (byte)g, (byte)b);
+                if (nearestByBin[bin] < 0)
+                {
+                    nearestByBin[bin] = Nearest(palette, (r & ~7) + 4, (g & ~7) + 4, (b & ~7) + 4);
+                }
+
+                short index = nearestByBin[bin];
+                indices[pixel] = index;
+                Diffuse(current, next, e, r - palette[index].R, g - palette[index].G, b - palette[index].B);
+            }
+
+            float[] swap = current;
+            current = next;
+            next = swap;
+        }
+
+        return new QuantizedImage(palette, indices, transparent);
+    }
+
+    private static void Diffuse(float[] current, float[] next, int e, int errorR, int errorG, int errorB)
+    {
+        Spread(current, e + 3, errorR, errorG, errorB, 7f / 16);
+        Spread(next, e - 3, errorR, errorG, errorB, 3f / 16);
+        Spread(next, e, errorR, errorG, errorB, 5f / 16);
+        Spread(next, e + 3, errorR, errorG, errorB, 1f / 16);
+    }
+
+    private static void Spread(float[] row, int at, int errorR, int errorG, int errorB, float weight)
+    {
+        row[at] += errorR * weight;
+        row[at + 1] += errorG * weight;
+        row[at + 2] += errorB * weight;
+    }
+
+    private static int ClampToByte(float value) => value < 0 ? 0 : value > 255 ? 255 : (int)(value + 0.5f);
 
     private static QuantizedImage MapPixels(
         byte[] px,

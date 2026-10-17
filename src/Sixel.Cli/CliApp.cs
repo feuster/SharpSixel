@@ -10,7 +10,7 @@ internal static class CliApp
 
     private const string Usage = """
         Usage:
-          sixel encode <input> [-o <file>] [--colors <2-256>]
+          sixel encode <input> [-o <file>] [--colors <2-256>] [--dither]
           sixel decode <input> -o <file>
           sixel check
 
@@ -22,6 +22,7 @@ internal static class CliApp
         Options:
           -o, --output <file>   output file
           --colors <n>          maximum palette colors for encode (default 256)
+          --dither              Floyd-Steinberg dithering for encode when colors are reduced
           -h, --help            show this help
           --version             show version
         """;
@@ -92,7 +93,11 @@ internal static class CliApp
     {
         byte[] data = ReadInput(arguments.Input!, env);
         SixelImage image = BmpCodec.IsBmp(data) ? BmpCodec.Decode(data) : SkiaImageCodec.Decode(data);
-        var encoder = new SixelEncoder(new SixelEncoderOptions { MaxColors = arguments.Colors });
+        var encoder = new SixelEncoder(new SixelEncoderOptions
+        {
+            MaxColors = arguments.Colors,
+            Dithering = arguments.Dither ? SixelDithering.FloydSteinberg : SixelDithering.None,
+        });
         WriteOutput(arguments.Output, encoder.EncodeToBytes(image), env);
     }
 

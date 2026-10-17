@@ -221,6 +221,96 @@ public class SixelEncoderTests
         Assert.All(sixel, c => Assert.True(c < 128));
     }
 
+    private static SixelImage GrayGradient(int width, int height)
+    {
+        var image = new SixelImage(width, height);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                byte gray = (byte)(x * 4);
+                image.SetPixel(x, y, new SixelColor(gray, gray, gray));
+            }
+        }
+
+        return image;
+    }
+
+    private static SixelImage RoundTrip(SixelImage image, SixelDithering dithering, int maxColors)
+    {
+        var encoder = new SixelEncoder(new SixelEncoderOptions { MaxColors = maxColors, Dithering = dithering });
+        return new SixelDecoder().Decode(encoder.Encode(image));
+    }
+
+    private static int Transitions(SixelImage image, int y)
+    {
+        int count = 0;
+        for (int x = 1; x < image.Width; x++)
+        {
+            if (image.GetPixel(x, y) != image.GetPixel(x - 1, y))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    [Fact]
+    public void Dithering_None_ProducesHardEdgeWithTwoColors()
+    {
+        SixelImage decoded = RoundTrip(GrayGradient(64, 8), SixelDithering.None, 2);
+
+        Assert.Equal(1, Transitions(decoded, 0));
+    }
+
+    [Fact]
+    public void Dithering_FloydSteinberg_MixesColorsAndPreservesAverageBrightness()
+    {
+        SixelImage original = GrayGradient(64, 8);
+
+        SixelImage decoded = RoundTrip(original, SixelDithering.FloydSteinberg, 2);
+
+        Assert.True(Transitions(decoded, 3) > 3);
+        double originalMean = Enumerable.Range(0, 64).Average(x => (double)original.GetPixel(x, 0).R);
+        double decodedMean = Enumerable.Range(0, 64).SelectMany(x => Enumerable.Range(0, 8).Select(y => (double)decoded.GetPixel(x, y).R)).Average();
+        Assert.InRange(Math.Abs(decodedMean - originalMean), 0, 15);
+    }
+
+    [Fact]
+    public void Dithering_ExactPalette_StaysLossless()
+    {
+        var image = new SixelImage(4, 2);
+        SixelColor[] colors = { Red, Blue, new(0, 255, 0), SixelColor.Black };
+        for (int i = 0; i < 8; i++)
+        {
+            image.SetPixel(i % 4, i / 4, colors[(i * 3) % 4]);
+        }
+
+        SixelImage decoded = RoundTrip(image, SixelDithering.FloydSteinberg, 8);
+
+        Assert.Equal(image.Pixels, decoded.Pixels);
+    }
+
+    [Fact]
+    public void Dithering_KeepsTransparentPixelsTransparent()
+    {
+        SixelImage image = GrayGradient(16, 16);
+        image.SetPixel(3, 3, SixelColor.Transparent);
+
+        SixelImage decoded = RoundTrip(image, SixelDithering.FloydSteinberg, 4);
+
+        Assert.Equal(0, decoded.GetPixel(3, 3).A);
+        Assert.Equal(255, decoded.GetPixel(4, 3).A);
+    }
+
+    [Fact]
+    public void Constructor_InvalidDithering_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => new SixelEncoder(new SixelEncoderOptions { Dithering = (SixelDithering)5 }));
+    }
+
     [Fact]
     public void Constructor_InvalidOptions_Throws()
     {

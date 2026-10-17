@@ -14,8 +14,16 @@ public sealed class SixelEncoderOptions
     /// <summary>Emit the raster attributes command with aspect ratio and image size. Default true.</summary>
     public bool EmitRasterAttributes { get; set; } = true;
 
+    /// <summary>Error diffusion used when the image has more colors than <see cref="MaxColors"/>. Default none.</summary>
+    public SixelDithering Dithering { get; set; } = SixelDithering.None;
+
     internal void Validate()
     {
+        if (!Enum.IsDefined(typeof(SixelDithering), Dithering))
+        {
+            throw new ArgumentOutOfRangeException(nameof(Dithering));
+        }
+
         if (MaxColors < 2 || MaxColors > 256)
         {
             throw new ArgumentOutOfRangeException(nameof(MaxColors), "MaxColors must be between 2 and 256.");

@@ -28,10 +28,11 @@ Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Teil einer CLI; Kern als NuGet 
 - Größe: max(Raster Ph/Pv, Daten); deklarierte Höhe kürzt nur das Padding des letzten Bands.
 - Ohne `#`-Auswahl: Vordergrund weiß. Register ≥ N: modulo. VT340-Defaultpalette aus Implementierungen, nur Register 1 verifiziert.
 - Decoder-Limits (Breite/Höhe 16384, 64 Mi Pixel) gegen DoS durch `!`-Repeat/Raster.
-- Encoder: Exakte Palette wenn ≤ MaxColors, sonst Median Cut (5-5-5-Histogramm), kein Dithering.
+- Encoder: Exakte Palette wenn ≤ MaxColors, sonst Median Cut (5-5-5-Histogramm); optional Floyd-Steinberg (`SixelDithering`, CLI `--dither`), nur bei Farbreduktion, Transparenz bleibt unberührt.
 
 ## Status / Offen
 - Terminal-Erkennung: DA1 (`ESC [ c`), Sixel = Attribut 4 (erster Parameter = Klasse, zählt nicht). Windows (P/Invoke, VT-Input) real verifiziert; Unix-Pfad (`stty`) nur implementiert, ungetestet.
-- Fertig: Decoder, Encoder, BMP, Skia, CLI, Terminal-Check, lokale NuGets, 136 Tests grün.
-- Offen: Dithering, Performance-Messung großer Bilder, Linux-Natives für CLI (`SkiaSharp.NativeAssets.Linux`), Authors/Repo-URL in NuGet-Metadaten.
+- Fertig: Decoder, Encoder (+Dithering), BMP, Skia, CLI, Terminal-Check, lokale NuGets, 142 Tests grün.
+- Performance (Release, net10.0, 3840x2160 verrauscht): Encode ~95 ms, mit Dithering ~210 ms, Decode ~150 ms.
+- Offen: Linux-Natives für CLI (`SkiaSharp.NativeAssets.Linux`), Authors/Repo-URL in NuGet-Metadaten, Unix-Pfad von `check` testen.
 - Lange Historie → `CLAUDE-History.md` auslagern, wenn diese Datei wächst.

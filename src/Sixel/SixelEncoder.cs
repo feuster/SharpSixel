@@ -41,7 +41,11 @@ public sealed class SixelEncoder
             throw new ArgumentNullException(nameof(image));
         }
 
-        QuantizedImage quantized = ColorQuantizer.Quantize(image, _options.MaxColors, _options.AlphaThreshold);
+        QuantizedImage quantized = ColorQuantizer.Quantize(
+            image,
+            _options.MaxColors,
+            _options.AlphaThreshold,
+            _options.Dithering == SixelDithering.FloydSteinberg);
         var sb = new StringBuilder();
         AppendHeader(sb, image, quantized);
         AppendPalette(sb, quantized.Palette);

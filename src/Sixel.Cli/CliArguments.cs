@@ -22,6 +22,14 @@ internal sealed class CliArguments
 
     public bool Dither { get; private set; }
 
+    public int? Width { get; private set; }
+
+    public int? Height { get; private set; }
+
+    public bool Fit { get; private set; }
+
+    public bool Upscale { get; private set; }
+
     public bool Help { get; private set; }
 
     public bool Version { get; private set; }
@@ -44,6 +52,18 @@ internal sealed class CliArguments
                 case "-o":
                 case "--output":
                     result.Output = RequireValue(args, ref i, arg);
+                    break;
+                case "--width":
+                    result.Width = ParsePositive(RequireValue(args, ref i, arg), arg);
+                    break;
+                case "--height":
+                    result.Height = ParsePositive(RequireValue(args, ref i, arg), arg);
+                    break;
+                case "--fit":
+                    result.Fit = true;
+                    break;
+                case "--upscale":
+                    result.Upscale = true;
                     break;
                 case "--dither":
                     result.Dither = true;
@@ -91,6 +111,16 @@ internal sealed class CliArguments
         }
 
         return args[++index];
+    }
+
+    private static int ParsePositive(string value, string option)
+    {
+        if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int number) || number < 1)
+        {
+            throw new UsageException($"{option} must be a positive integer");
+        }
+
+        return number;
     }
 
     private static int ParseColors(string value)

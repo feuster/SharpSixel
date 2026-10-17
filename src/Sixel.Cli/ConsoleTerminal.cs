@@ -9,19 +9,68 @@ internal static class ConsoleTerminal
 {
     private static readonly TimeSpan AnswerTimeout = TimeSpan.FromMilliseconds(1000);
 
+    // Used when the terminal reports neither text area nor cell size in pixels.
+    private const int AssumedCellWidth = 10;
+    private const int AssumedCellHeight = 20;
+
     /// <summary>Returns false if input or output is redirected, the terminal does not answer, or lacks sixel support.</summary>
-    public static bool DetectSixel()
+    public static bool DetectSixel() =>
+        Probe(false, readChar => SixelTerminal.Detect(Console.Out, readChar));
+
+    /// <summary>
+    /// Determines the drawable area in pixels (text area minus one row for the prompt). Uses the pixel size reported by
+    /// the terminal, else cell size times console cells, else an assumed cell size. Null if no terminal is attached.
+    /// </summary>
+    public static TerminalSize? QuerySize()
+    {
+        SixelTerminalInfo? info = Probe<SixelTerminalInfo?>(null, readChar => SixelTerminal.Query(Console.Out, readChar));
+        if (info == null || !TryGetCells(out int columns, out int rows))
+        {
+            return null;
+        }
+
+        if (info.HasTextAreaSize)
+        {
+            int cellHeight = info.HasCellSize ? info.CellHeight : info.TextAreaHeight / rows;
+            return new TerminalSize(info.TextAreaWidth, Math.Max(1, info.TextAreaHeight - cellHeight), false);
+        }
+
+        if (info.HasCellSize)
+        {
+            return new TerminalSize(columns * info.CellWidth, Math.Max(1, (rows - 1) * info.CellHeight), false);
+        }
+
+        return new TerminalSize(columns * AssumedCellWidth, Math.Max(1, (rows - 1) * AssumedCellHeight), true);
+    }
+
+    private static bool TryGetCells(out int columns, out int rows)
+    {
+        columns = rows = 0;
+        try
+        {
+            columns = Console.WindowWidth;
+            rows = Console.WindowHeight;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+
+        return columns > 0 && rows > 0;
+    }
+
+    private static T Probe<T>(T fallback, Func<Func<int>, T> probe)
     {
         if (Console.IsInputRedirected || Console.IsOutputRedirected)
         {
-            return false;
+            return fallback;
         }
 
         using (RawMode.Enter())
         using (Stream stdin = Console.OpenStandardInput())
         {
             var reader = new TimeoutReader(stdin, AnswerTimeout);
-            return SixelTerminal.Detect(Console.Out, reader.ReadChar);
+            return probe(reader.ReadChar);
         }
     }
 

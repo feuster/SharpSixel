@@ -8,6 +8,8 @@ public sealed class CliAppTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "sixel-cli-" + Guid.NewGuid().ToString("N"));
     private bool _terminalSupportsSixel;
+    private TerminalSize? _terminalSize;
+    private int _sizeQueries;
 
     public CliAppTests()
     {
@@ -31,7 +33,12 @@ public sealed class CliAppTests : IDisposable
             stdout,
             output,
             error,
-            () => _terminalSupportsSixel);
+            () => _terminalSupportsSixel,
+            () =>
+            {
+                _sizeQueries++;
+                return _terminalSize;
+            });
         int code = CliApp.Run(args, env);
         return new Result(code, stdout.ToArray(), output.ToString(), error.ToString());
     }
@@ -98,6 +105,100 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal(4, new SixelDecoder().Decode(result.Stdout).Width);
+    }
+
+    private SixelImage EncodeAndDecode(params string[] extraArgs)
+    {
+        string input = WriteBmp("in.bmp");
+        Result result = Run(null, new[] { "encode", input }.Concat(extraArgs).ToArray());
+        Assert.Equal(0, result.ExitCode);
+        return new SixelDecoder().Decode(result.Stdout);
+    }
+
+    [Theory]
+    [InlineData("--width", "2", 2, 3)]
+    [InlineData("--height", "3", 2, 3)]
+    [InlineData("--width", "100", 4, 6)]
+    public void Encode_WidthOrHeight_ShrinksKeepingAspectRatio(string option, string value, int width, int height)
+    {
+        SixelImage decoded = EncodeAndDecode(option, value);
+
+        Assert.Equal(width, decoded.Width);
+        Assert.Equal(height, decoded.Height);
+    }
+
+    [Fact]
+    public void Encode_UpscaleOption_EnlargesToLimit()
+    {
+        SixelImage decoded = EncodeAndDecode("--width", "8", "--upscale");
+
+        Assert.Equal(8, decoded.Width);
+        Assert.Equal(12, decoded.Height);
+    }
+
+    [Fact]
+    public void Encode_Fit_UsesTerminalSize()
+    {
+        _terminalSize = new TerminalSize(2, 100, false);
+
+        SixelImage decoded = EncodeAndDecode("--fit");
+
+        Assert.Equal(2, decoded.Width);
+        Assert.Equal(3, decoded.Height);
+    }
+
+    [Fact]
+    public void Encode_FitWithExplicitWidth_ExplicitAxisWins()
+    {
+        _terminalSize = new TerminalSize(2, 100, false);
+
+        SixelImage decoded = EncodeAndDecode("--fit", "--width", "4");
+
+        Assert.Equal(4, decoded.Width);
+        Assert.Equal(6, decoded.Height);
+    }
+
+    [Fact]
+    public void Encode_FitWithBothLimits_DoesNotQueryTerminal()
+    {
+        _terminalSize = new TerminalSize(1, 1, false);
+
+        SixelImage decoded = EncodeAndDecode("--fit", "--width", "2", "--height", "3");
+
+        Assert.Equal(0, _sizeQueries);
+        Assert.Equal(2, decoded.Width);
+    }
+
+    [Fact]
+    public void Encode_FitWithoutTerminal_ReturnsExitCode1()
+    {
+        _terminalSize = null;
+
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "--fit");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("--fit", result.Error);
+    }
+
+    [Fact]
+    public void Encode_FitWithEstimatedSize_WarnsOnStderr()
+    {
+        _terminalSize = new TerminalSize(2, 100, true);
+
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "--fit");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.StartsWith("warning:", result.Error);
+    }
+
+    [Fact]
+    public void Encode_WithoutSizeOptions_KeepsOriginalSize()
+    {
+        SixelImage decoded = EncodeAndDecode();
+
+        Assert.Equal(4, decoded.Width);
+        Assert.Equal(6, decoded.Height);
+        Assert.Equal(0, _sizeQueries);
     }
 
     [Fact]
@@ -209,6 +310,10 @@ public sealed class CliAppTests : IDisposable
     [InlineData("encode", "x", "--colors", "abc")]
     [InlineData("encode", "x", "-o")]
     [InlineData("decode", "x")]
+    [InlineData("encode", "x", "--width", "0")]
+    [InlineData("encode", "x", "--width", "abc")]
+    [InlineData("encode", "x", "--height", "-1")]
+    [InlineData("encode", "x", "--height")]
     public void InvalidUsage_ReturnsExitCode2(params string[] args)
     {
         Result result = Run(null, args);

@@ -3,7 +3,7 @@
 Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Teil einer CLI; Kern als NuGet portierbar.
 
 ## Struktur
-- `src/Sixel` – Kern, **0 Abhängigkeiten**, `netstandard2.0;net10.0`: `SixelImage`, `SixelEncoder`, `SixelDecoder`, `BmpCodec`, `SixelTerminal` (DA1-Parser/Detect, I/O-agnostisch)
+- `src/Sixel` – Kern, **0 Abhängigkeiten**, `netstandard2.0;net10.0`: `SixelImage`, `SixelEncoder`, `SixelDecoder`, `BmpCodec`, `ImageScaler`, `SixelTerminal` (DA1 + Pixelgröße, I/O-agnostisch)
 - `src/Sixel.Skia` – SkiaSharp-Adapter (PNG/JPEG), eigenes NuGet `Sixel.Skia`
 - `src/Sixel.Cli` – `encode`/`decode`/`check` (`CliApp` testbar über `CliEnvironment`; `ConsoleTerminal` = Raw-Mode + Timeout für DA1)
 - `tests/Sixel.Tests` – xUnit; Docs: `Docs/all-about-sixels.txt`
@@ -31,8 +31,9 @@ Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Teil einer CLI; Kern als NuGet 
 - Encoder: Exakte Palette wenn ≤ MaxColors, sonst Median Cut (5-5-5-Histogramm); optional Floyd-Steinberg (`SixelDithering`, CLI `--dither`), nur bei Farbreduktion, Transparenz bleibt unberührt.
 
 ## Status / Offen
+- Größenanpassung: `ImageScaler` (Flächenmittel beim Verkleinern, bilinear beim Vergrößern, alpha-gewichtet). CLI `--width/--height` (fit, nur verkleinern), `--upscale`, `--fit` = Terminalbereich; explizite Achse hat Vorrang. Terminalbereich: `CSI 14 t` (Textbereich px) bzw. `CSI 16 t` (Zelle px) × Konsolenzellen, sonst geschätzt 10x20 (Warnung auf stderr); Höhe minus eine Zeile. Abfrage `CSI 14t CSI 16t CSI c` in einem Rutsch, DA1 als Sentinel (kein Timeout bei Terminals ohne Support).
 - Terminal-Erkennung: DA1 (`ESC [ c`), Sixel = Attribut 4 (erster Parameter = Klasse, zählt nicht). Windows (P/Invoke, VT-Input) real verifiziert; Unix-Pfad (`stty`) nur implementiert, ungetestet.
-- Fertig: Decoder, Encoder (+Dithering), BMP, Skia, CLI, Terminal-Check, lokale NuGets, 142 Tests grün.
+- Fertig: Decoder, Encoder (+Dithering), BMP, Skia, CLI, Terminal-Check, Skalierung/`--fit`, lokale NuGets, 188 Tests grün. `--fit` unter Windows Terminal real verifiziert (120x30 Zellen → 3000x2000 wird 870x580).
 - Performance (Release, net10.0, 3840x2160 verrauscht): Encode ~95 ms, mit Dithering ~210 ms, Decode ~150 ms.
-- Offen: Linux-Natives für CLI (`SkiaSharp.NativeAssets.Linux`), Authors/Repo-URL in NuGet-Metadaten, Unix-Pfad von `check` testen.
+- Offen: Linux-Natives für CLI (`SkiaSharp.NativeAssets.Linux`), Unix-Pfad von `check`/`--fit` testen. NuGet-Metadaten (Autor/Repo-URL) bewusst offen (Nutzerentscheidung), Pakete nur lokal packen.
 - Lange Historie → `CLAUDE-History.md` auslagern, wenn diese Datei wächst.

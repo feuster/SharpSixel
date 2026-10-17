@@ -1,5 +1,8 @@
 namespace Sixel.Cli;
 
+/// <summary>Drawable terminal area in pixels; <see cref="Estimated"/> is true if cell size had to be guessed.</summary>
+internal sealed record TerminalSize(int Width, int Height, bool Estimated);
+
 /// <summary>I/O channels of the CLI; replaceable in tests.</summary>
 internal sealed class CliEnvironment
 {
@@ -8,13 +11,15 @@ internal sealed class CliEnvironment
         Stream stdout,
         TextWriter output,
         TextWriter error,
-        Func<bool> detectSixelTerminal)
+        Func<bool> detectSixelTerminal,
+        Func<TerminalSize?> queryTerminalSize)
     {
         Stdin = stdin;
         Stdout = stdout;
         Output = output;
         Error = error;
         DetectSixelTerminal = detectSixelTerminal;
+        QueryTerminalSize = queryTerminalSize;
     }
 
     /// <summary>Binary standard input (used for input "-").</summary>
@@ -31,4 +36,7 @@ internal sealed class CliEnvironment
 
     /// <summary>Asks the attached terminal whether it supports sixel graphics.</summary>
     public Func<bool> DetectSixelTerminal { get; }
+
+    /// <summary>Determines the drawable terminal area in pixels; null if no terminal is attached.</summary>
+    public Func<TerminalSize?> QueryTerminalSize { get; }
 }

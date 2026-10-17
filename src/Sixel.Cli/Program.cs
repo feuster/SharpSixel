@@ -7,4 +7,5 @@ return CliApp.Run(
         Console.OpenStandardOutput(),
         Console.Out,
         Console.Error,
-        ConsoleTerminal.DetectSixel));
+        ConsoleTerminal.DetectSixel,
+        ConsoleTerminal.QuerySize));

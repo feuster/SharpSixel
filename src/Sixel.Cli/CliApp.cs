@@ -11,6 +11,7 @@ internal static class CliApp
     private const string Usage = """
         Usage:
           sixel encode <input> [-o <file>] [--colors <2-256>] [--dither]
+                       [--width <px>] [--height <px>] [--fit] [--upscale]
           sixel decode <input> -o <file>
           sixel check
 
@@ -23,6 +24,11 @@ internal static class CliApp
           -o, --output <file>   output file
           --colors <n>          maximum palette colors for encode (default 256)
           --dither              Floyd-Steinberg dithering for encode when colors are reduced
+          --width <px>          fit the image into this width (keeps aspect ratio)
+          --height <px>         fit the image into this height (keeps aspect ratio)
+          --fit                 fit into the terminal's drawable area (needs a terminal on stdin/stdout);
+                                --width/--height take precedence per axis
+          --upscale             also enlarge small images to the given limits (default: shrink only)
           -h, --help            show this help
           --version             show version
         """;
@@ -93,12 +99,33 @@ internal static class CliApp
     {
         byte[] data = ReadInput(arguments.Input!, env);
         SixelImage image = BmpCodec.IsBmp(data) ? BmpCodec.Decode(data) : SkiaImageCodec.Decode(data);
+        image = FitImage(image, arguments, env);
         var encoder = new SixelEncoder(new SixelEncoderOptions
         {
             MaxColors = arguments.Colors,
             Dithering = arguments.Dither ? SixelDithering.FloydSteinberg : SixelDithering.None,
         });
         WriteOutput(arguments.Output, encoder.EncodeToBytes(image), env);
+    }
+
+    private static SixelImage FitImage(SixelImage image, CliArguments arguments, CliEnvironment env)
+    {
+        int? maxWidth = arguments.Width;
+        int? maxHeight = arguments.Height;
+        if (arguments.Fit && (maxWidth == null || maxHeight == null))
+        {
+            TerminalSize size = env.QueryTerminalSize()
+                                ?? throw new SixelException("--fit needs a terminal on stdin and stdout; use --width/--height instead.");
+            if (size.Estimated)
+            {
+                env.Error.WriteLine("warning: terminal did not report its pixel size; assuming 10x20 pixel cells.");
+            }
+
+            maxWidth ??= size.Width;
+            maxHeight ??= size.Height;
+        }
+
+        return ImageScaler.Fit(image, maxWidth, maxHeight, arguments.Upscale);
     }
 
     private static void Decode(CliArguments arguments, CliEnvironment env)

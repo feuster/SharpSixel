@@ -1,0 +1,8 @@
+<Project>
+  <!-- Packages and published apps are Release builds only (see also PackRelease/PublishRelease in Directory.Build.props). -->
+  <Target Name="RequireReleaseConfiguration"
+          BeforeTargets="Pack;PrepareForPublish"
+          Condition="'$(Configuration)' != 'Release'">
+    <Error Text="Pack and publish are only supported as Release builds (-c Release); current configuration: $(Configuration)." />
+  </Target>
+</Project>

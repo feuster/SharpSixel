@@ -4,8 +4,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <Version>0.1.0</Version>
-    <Authors>Sixel contributors</Authors>
-    <Copyright>Copyright (c) 2026 Sixel contributors</Copyright>
+    <PackRelease>true</PackRelease>
+    <PublishRelease>true</PublishRelease>
+    <Product>SharpSixel</Product>
+    <Authors>Alexander Feuster</Authors>
+    <Copyright>Copyright (c) 2026 Alexander Feuster</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 </Project>

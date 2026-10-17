@@ -27,14 +27,16 @@ area (queried from the terminal); `--upscale` also enlarges small images.
 
 ```
 dotnet test
-dotnet pack src/Sixel -c Release -o artifacts/nupkg
-dotnet pack src/Sixel.Skia -c Release -o artifacts/nupkg
+dotnet pack src/Sixel -c Release -o publish/nuget
+dotnet pack src/Sixel.Skia -c Release -o publish/nuget
 ```
 
-## Standalone executable
+## Standalone executable and NuGet packages
 
 ```powershell
-./publish.ps1     # -> publish/sixel.exe (win-x64, self-contained, single file, no .NET install needed)
-```
+./publish.ps1                  # -> publish/sixel.exe + publish/nuget/*.nupkg
+./publish.ps1 -Version 0.2.0   # optional version for exe and packages
+```n
+`sixel.exe` is win-x64, self-contained, single file (no .NET install needed). The packages are built locally and not uploaded; use the folder as a local NuGet source.
 
 Licensed under MIT.

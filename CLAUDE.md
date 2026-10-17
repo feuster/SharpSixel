@@ -10,8 +10,8 @@ Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Teil einer CLI; Kern als NuGet 
 
 ## Befehle
 - Test: `dotnet test`
-- Pack (lokal, kein Publish): `dotnet pack src/Sixel -c Release -o artifacts/nupkg` (ebenso `src/Sixel.Skia`)
-- Publish (win-x64, self-contained Single-File, komprimiert, nach `publish/sixel.exe`, gitignored): `./publish.ps1` bzw. `dotnet publish src/Sixel.Cli -p:PublishProfile=win-x64`\n- CLI: `dotnet run --project src/Sixel.Cli -- encode in.bmp -o out.six`
+- Pack einzeln (lokal, kein Upload): `dotnet pack src/Sixel -c Release -o publish/nuget` (ebenso `src/Sixel.Skia`)
+- Alles in einem Lauf: `./publish.ps1 [-Version x.y.z]` → `publish/sixel.exe` (win-x64, self-contained Single-File, komprimiert) + `publish/nuget/*.nupkg` (Sixel, Sixel.Skia); `publish/` ist gitignored. Nur die Exe: `dotnet publish src/Sixel.Cli -p:PublishProfile=win-x64`. NuGet nur lokal, nie hochladen ohne Auftrag. Konsum getestet über lokalen Feed (nuget.config mit `packageSourceMapping`).\n- CLI: `dotnet run --project src/Sixel.Cli -- encode in.bmp -o out.six`
 
 ## Regeln
 - Keine neuen NuGets ohne Rückfrage (MIT bevorzugt). SkiaSharp (MIT) ist freigegeben, nur in Skia/CLI.

@@ -30,6 +30,16 @@ internal sealed class CliArguments
 
     public bool Upscale { get; private set; }
 
+    public bool Show { get; private set; }
+
+    public bool ColorsSpecified { get; private set; }
+
+    public bool DitherSpecified { get; private set; }
+
+    /// <summary>True if any option changes the image (size, colors, dithering), so sixel input cannot be passed through.</summary>
+    public bool HasProcessingOptions =>
+        Width != null || Height != null || Fit || ColorsSpecified || DitherSpecified;
+
     public bool Help { get; private set; }
 
     public bool Version { get; private set; }
@@ -67,9 +77,14 @@ internal sealed class CliArguments
                     break;
                 case "--dither":
                     result.Dithering = ParseDithering(args, ref i);
+                    result.DitherSpecified = true;
+                    break;
+                case "--show":
+                    result.Show = true;
                     break;
                 case "--colors":
                     result.Colors = ParseColors(RequireValue(args, ref i, arg));
+                    result.ColorsSpecified = true;
                     break;
                 default:
                     result.AddPositional(arg);

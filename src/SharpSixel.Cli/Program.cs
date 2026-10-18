@@ -8,4 +8,5 @@ return CliApp.Run(
         Console.Out,
         Console.Error,
         ConsoleTerminal.DetectSixel,
-        ConsoleTerminal.QuerySize));
+        ConsoleTerminal.QuerySize,
+        () => !Console.IsOutputRedirected));

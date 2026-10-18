@@ -8,6 +8,8 @@ public sealed class CliAppTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "sixel-cli-" + Guid.NewGuid().ToString("N"));
     private bool _terminalSupportsSixel;
+    private bool _outputIsTerminal = true;
+    private int _detectCalls;
     private TerminalSize? _terminalSize;
     private int _sizeQueries;
 
@@ -33,12 +35,17 @@ public sealed class CliAppTests : IDisposable
             stdout,
             output,
             error,
-            () => _terminalSupportsSixel,
+            () =>
+            {
+                _detectCalls++;
+                return _terminalSupportsSixel;
+            },
             () =>
             {
                 _sizeQueries++;
                 return _terminalSize;
-            });
+            },
+            () => _outputIsTerminal);
         int code = CliApp.Run(args, env);
         return new Result(code, stdout.ToArray(), output.ToString(), error.ToString());
     }
@@ -346,6 +353,178 @@ public sealed class CliAppTests : IDisposable
     {
         // Test hosts redirect stdin/stdout, so no query may be sent and the call must not block.
         Assert.False(ConsoleTerminal.DetectSixel());
+    }
+
+    private string WriteSixel(string name)
+    {
+        string path = PathOf(name);
+        File.WriteAllBytes(path, new SixelEncoder().EncodeToBytes(RedImage()));
+        return path;
+    }
+
+    private static byte[] WithNewLine(byte[] bytes) => bytes.Concat(new[] { (byte)'\n' }).ToArray();
+
+    [Fact]
+    public void Show_WithoutOutput_DisplaysOnlyAndEndsWithNewLine()
+    {
+        _terminalSupportsSixel = true;
+
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "--show");
+
+        Assert.Equal(0, result.ExitCode);
+        string text = Encoding.ASCII.GetString(result.Stdout);
+        Assert.StartsWith("\u001bP", text);
+        Assert.EndsWith("\u001b\\\n", text);
+        Assert.Equal(string.Empty, result.Error);
+        Assert.Equal(new[] { "in.bmp" }, Directory.GetFiles(_dir).Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public void Show_WithOutput_SavesAndDisplays()
+    {
+        _terminalSupportsSixel = true;
+        string output = PathOf("saved.six");
+
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "-o", output, "--show");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(WithNewLine(File.ReadAllBytes(output)), result.Stdout);
+    }
+
+    [Fact]
+    public void Output_WithoutShow_OnlySavesAndDoesNotDisplay()
+    {
+        string output = PathOf("saved.six");
+
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "-o", output);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Empty(result.Stdout);
+        Assert.True(File.Exists(output));
+        Assert.Equal(0, _detectCalls);
+    }
+
+    [Fact]
+    public void Show_SixelInput_IsDisplayedUnchanged()
+    {
+        _terminalSupportsSixel = true;
+        string input = WriteSixel("in.six");
+
+        Result result = Run(null, "encode", input, "--show");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(WithNewLine(File.ReadAllBytes(input)), result.Stdout);
+    }
+
+    [Fact]
+    public void Show_SixelInputWithOutput_SavesIdenticalCopyAndDisplays()
+    {
+        _terminalSupportsSixel = true;
+        string input = WriteSixel("in.six");
+        string output = PathOf("copy.six");
+
+        Result result = Run(null, "encode", input, "-o", output, "--show");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(File.ReadAllBytes(input), File.ReadAllBytes(output));
+        Assert.Equal(WithNewLine(File.ReadAllBytes(input)), result.Stdout);
+    }
+
+    [Fact]
+    public void SixelInput_WithSizeOption_IsDecodedScaledAndReencoded()
+    {
+        _terminalSupportsSixel = true;
+
+        Result result = Run(null, "encode", WriteSixel("in.six"), "--show", "--width", "2");
+
+        Assert.Equal(0, result.ExitCode);
+        SixelImage shown = new SixelDecoder().Decode(result.Stdout);
+        Assert.Equal(2, shown.Width);
+        Assert.Equal(3, shown.Height);
+    }
+
+    [Fact]
+    public void SixelInput_WithoutShowAndOutput_IsWrittenToStdoutUnchanged()
+    {
+        string input = WriteSixel("in.six");
+
+        Result result = Run(null, "encode", input);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(File.ReadAllBytes(input), result.Stdout);
+    }
+
+    [Fact]
+    public void Show_WithRedirectedOutput_ReturnsExitCode1AndWritesNothing()
+    {
+        _outputIsTerminal = false;
+        string output = PathOf("saved.six");
+
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "-o", output, "--show");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("--show", result.Error);
+        Assert.Empty(result.Stdout);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public void Show_TerminalWithoutSixelSupport_WarnsButStillDisplays()
+    {
+        _terminalSupportsSixel = false;
+
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "--show");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.StartsWith("warning:", result.Error);
+        Assert.NotEmpty(result.Stdout);
+    }
+
+    [Fact]
+    public void Show_ChecksTerminalOnce_ButNotWhenReadingFromStdin()
+    {
+        _terminalSupportsSixel = true;
+        Run(null, "encode", WriteBmp("in.bmp"), "--show");
+        Assert.Equal(1, _detectCalls);
+
+        Result viaStdin = Run(BmpCodec.Encode(RedImage()), "encode", "-", "--show");
+
+        Assert.Equal(0, viaStdin.ExitCode);
+        Assert.Equal(1, _detectCalls);
+    }
+
+    [Fact]
+    public void Show_WithDecode_ReturnsExitCode2()
+    {
+        Result result = Run(null, "decode", WriteSixel("in.six"), "-o", PathOf("out.png"), "--show");
+
+        Assert.Equal(2, result.ExitCode);
+    }
+
+    [Fact]
+    public void Show_InvalidSixelData_ReturnsExitCode1()
+    {
+        _terminalSupportsSixel = true;
+        string input = PathOf("empty.six");
+        File.WriteAllText(input, "\u001bPq\u001b\\");
+
+        Result result = Run(null, "encode", input, "--show");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(result.Stdout);
+    }
+
+    [Fact]
+    public void Show_PlainTextFile_IsNeitherImageNorSixel_ReturnsExitCode1()
+    {
+        _terminalSupportsSixel = true;
+        string input = PathOf("note.txt");
+        File.WriteAllText(input, "hello world, this is just text");
+
+        Result result = Run(null, "encode", input, "--show");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(result.Stdout);
     }
 
     [Fact]

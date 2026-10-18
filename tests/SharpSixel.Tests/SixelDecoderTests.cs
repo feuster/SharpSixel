@@ -268,6 +268,39 @@ public class SixelDecoderTests
         Assert.Throws<SixelException>(() => decoder.Decode("!2~"));
     }
 
+    [Theory]
+    [InlineData("\u001bPq#1~\u001b\\", true)]
+    [InlineData("\u001bP0;1;0q#1~", true)]
+    [InlineData("  \r\n\u001bPq#1~", true)]
+    [InlineData("\u0090q#1~", true)]
+    [InlineData("\u001bP1;2", false)]
+    [InlineData("\u001bP1;2 text", false)]
+    [InlineData("#1;2;100;0;0~", false)]
+    [InlineData("hello world", false)]
+    [InlineData("BM", false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    public void LooksLikeSixel_RequiresDcsHeader(string text, bool expected)
+    {
+        Assert.Equal(expected, SixelDecoder.LooksLikeSixel(ByteInput.FromLatin1(text)));
+    }
+
+    [Fact]
+    public void LooksLikeSixel_RecognizesEncoderOutput_ButNotBmp()
+    {
+        var image = new SixelImage(2, 2);
+        byte[] sixel = new SixelEncoder().EncodeToBytes(image);
+
+        Assert.True(SixelDecoder.LooksLikeSixel(sixel));
+        Assert.False(SixelDecoder.LooksLikeSixel(BmpCodec.Encode(image)));
+    }
+
+    [Fact]
+    public void LooksLikeSixel_NullInput_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => SixelDecoder.LooksLikeSixel(null!));
+    }
+
     [Fact]
     public void Constructor_InvalidOptions_Throws()
     {

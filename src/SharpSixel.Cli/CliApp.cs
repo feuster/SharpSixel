@@ -10,18 +10,21 @@ internal static class CliApp
 
     private const string Usage = """
         Usage:
-          SharpSixel encode <input> [-o <file>] [--colors <2-256>] [--dither [floyd|bayer|none]]
+          SharpSixel encode <input> [-o <file>] [--show] [--colors <2-256>] [--dither [floyd|bayer|none]]
                        [--width <px>] [--height <px>] [--fit] [--upscale]
           SharpSixel decode <input> -o <file>
           SharpSixel check
 
         <input>  file path, or '-' for standard input.
-        encode   input: BMP, PNG, JPEG (and other Skia formats); output: sixel (default: stdout).
+        encode   input: BMP, PNG, JPEG (and other Skia formats) or a sixel file; output: sixel (default: stdout).
+                 A sixel file (header ESC P ... q) is passed through unchanged unless size/color options are given.
         decode   input: sixel; output format by extension: .bmp, .png, .jpg, .jpeg.
         check    asks the terminal whether it supports sixel; exit code 0 = yes, 1 = no/unknown.
 
         Options:
           -o, --output <file>   output file
+          --show                display the sixel in the terminal (stdout must be a terminal).
+                                Without -o the sixel is only displayed, with -o it is saved and displayed.
           --colors <n>          maximum palette colors for encode (default 256)
           --dither [mode]       dithering for encode when colors are reduced: floyd (default if no mode
                                 is given, Floyd-Steinberg), bayer (ordered 8x8) or none
@@ -98,15 +101,86 @@ internal static class CliApp
 
     private static void Encode(CliArguments arguments, CliEnvironment env)
     {
+        if (arguments.Show)
+        {
+            RequireTerminalOutput(env);
+        }
+
         byte[] data = ReadInput(arguments.Input!, env);
-        SixelImage image = BmpCodec.IsBmp(data) ? BmpCodec.Decode(data) : SkiaImageCodec.Decode(data);
+        if (arguments.Show && arguments.Input != StdioName)
+        {
+            WarnIfSixelUnsupported(env);
+        }
+
+        byte[] sixel = CreateSixel(data, arguments, env);
+
+        bool saveToFile = arguments.Output != null && arguments.Output != StdioName;
+        if (saveToFile)
+        {
+            File.WriteAllBytes(arguments.Output!, sixel);
+        }
+
+        if (!saveToFile || arguments.Show)
+        {
+            WriteSixelToStdout(sixel, arguments.Show, env);
+        }
+    }
+
+    /// <summary>
+    /// Turns the input into sixel: images are encoded; a sixel file is validated and passed through unchanged unless
+    /// options that change the image (size, colors, dithering) are given, in which case it is decoded and re-encoded.
+    /// </summary>
+    private static byte[] CreateSixel(byte[] data, CliArguments arguments, CliEnvironment env)
+    {
+        SixelImage image;
+        if (!BmpCodec.IsBmp(data) && SixelDecoder.LooksLikeSixel(data))
+        {
+            image = new SixelDecoder().Decode(data);
+            if (!arguments.HasProcessingOptions)
+            {
+                return data;
+            }
+        }
+        else
+        {
+            image = BmpCodec.IsBmp(data) ? BmpCodec.Decode(data) : SkiaImageCodec.Decode(data);
+        }
+
         image = FitImage(image, arguments, env);
         var encoder = new SixelEncoder(new SixelEncoderOptions
         {
             MaxColors = arguments.Colors,
             Dithering = arguments.Dithering,
         });
-        WriteOutput(arguments.Output, encoder.EncodeToBytes(image), env);
+        return encoder.EncodeToBytes(image);
+    }
+
+    private static void RequireTerminalOutput(CliEnvironment env)
+    {
+        if (!env.IsOutputTerminal())
+        {
+            throw new SixelException("--show needs standard output to be a terminal; do not redirect it.");
+        }
+    }
+
+    private static void WarnIfSixelUnsupported(CliEnvironment env)
+    {
+        if (!env.DetectSixelTerminal())
+        {
+            env.Error.WriteLine("warning: the terminal does not report sixel support; the image may not be displayed correctly.");
+        }
+    }
+
+    /// <summary>Writes the sixel to stdout; for display a final line break keeps the prompt on its own line.</summary>
+    private static void WriteSixelToStdout(byte[] sixel, bool endWithNewLine, CliEnvironment env)
+    {
+        env.Stdout.Write(sixel, 0, sixel.Length);
+        if (endWithNewLine)
+        {
+            env.Stdout.WriteByte((byte)'\n');
+        }
+
+        env.Stdout.Flush();
     }
 
     private static SixelImage FitImage(SixelImage image, CliArguments arguments, CliEnvironment env)
@@ -131,6 +205,11 @@ internal static class CliApp
 
     private static void Decode(CliArguments arguments, CliEnvironment env)
     {
+        if (arguments.Show)
+        {
+            throw new UsageException("--show is only supported by encode");
+        }
+
         if (arguments.Output == null)
         {
             throw new UsageException("decode requires an output file (-o)");

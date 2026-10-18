@@ -59,6 +59,44 @@ public sealed class SixelDecoder
         return new DecodeSession(_options, macroParameter, backgroundSelect).Run(data, start);
     }
 
+    /// <summary>
+    /// Returns true if the data starts (after optional white space) with a sixel DCS header, i.e. <c>ESC P ... q</c>
+    /// or the 8-bit form. Headerless sixel data is deliberately not recognized, so ordinary text is never taken for sixel.
+    /// </summary>
+    public static bool LooksLikeSixel(byte[] data)
+    {
+        if (data == null)
+        {
+            throw new ArgumentNullException(nameof(data));
+        }
+
+        int position = 0;
+        while (position < data.Length && data[position] <= 0x20 && data[position] != Esc)
+        {
+            position++;
+        }
+
+        if (position >= data.Length)
+        {
+            return false;
+        }
+
+        if (data[position] == Dcs8)
+        {
+            position++;
+        }
+        else if (data[position] == Esc && position + 1 < data.Length && data[position + 1] == (byte)'P')
+        {
+            position += 2;
+        }
+        else
+        {
+            return false;
+        }
+
+        return TryParseHeader(data, ref position, out _, out _);
+    }
+
     private static int FindDataStart(byte[] data, out int macroParameter, out int backgroundSelect)
     {
         for (int i = 0; i < data.Length; i++)

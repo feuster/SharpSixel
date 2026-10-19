@@ -536,7 +536,6 @@ Unterstützung des KI-Sprachmodells Claude von Anthropic erstellt.
 
   Eingesetztes Modell: Claude Sonnet 5.5
 
-Es wurde ausschließlich diese eine Modellversion eingesetzt.
-Für Inhalt, Prüfung und Veröffentlichung ist der Autor verantwortlich. Dieser
+Es wurde ausschließlich diese eine Modellversion eingesetzt. Dieser
 Hinweis ist freiwillig, dient der Transparenz und schränkt die MIT-Lizenz nicht
 ein.

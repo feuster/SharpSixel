@@ -526,6 +526,5 @@ the assistance of the AI language model Claude by Anthropic.
 
   Model in use: Claude Sonnet 5.5
 
-Only this one model version was used. The author is responsible for the
-content, its review and the publication. This note is voluntary, serves
+Only this one model version was used. This note is voluntary, serves
 transparency and does not restrict the MIT license.

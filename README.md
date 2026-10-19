@@ -201,8 +201,7 @@ followed.
 ## Note on the use of AI (voluntary)
 
 Parts of this project (source code, tests and documentation) were created with the assistance of the AI language model
-Claude by Anthropic (Claude Sonnet 5.5; only this one model version was used). The author is responsible for the content
-and its publication.
+Claude by Anthropic (Claude Sonnet 5.5; only this one model version was used).
 
 ## License
 

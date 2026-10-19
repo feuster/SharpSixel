@@ -343,6 +343,33 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
+    public void Check_Supported_DisplaysTestImageAfterTheMessage()
+    {
+        _terminalSupportsSixel = true;
+
+        Result result = Run(null, "check");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("supports sixel", result.Out);
+        Assert.StartsWith("\u001bP", Encoding.ASCII.GetString(result.Stdout));
+        Assert.Equal((byte)'\n', result.Stdout[^1]);
+        SixelImage shown = new SixelDecoder().Decode(result.Stdout);
+        Assert.Equal(TestImage.Width, shown.Width);
+        Assert.Equal(TestImage.Height, shown.Height);
+    }
+
+    [Fact]
+    public void Check_Unsupported_DisplaysNoImage()
+    {
+        _terminalSupportsSixel = false;
+
+        Result result = Run(null, "check");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(result.Stdout);
+    }
+
+    [Fact]
     public void Check_WithArgument_ReturnsExitCode2()
     {
         Assert.Equal(2, Run(null, "check", "x").ExitCode);

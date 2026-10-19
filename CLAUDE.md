@@ -32,11 +32,11 @@ Repo-Ordner: `C:\ai\SharpSixel` (vorher `C:\ai\Sixel`).
 - Decoder-Limits (16384 px je Achse, 64 Mi Pixel) gegen DoS.
 - Encoder: exakte Palette wenn ≤ MaxColors, sonst Median Cut (5-5-5-Histogramm). Dithering None/FloydSteinberg/Ordered (CLI `--dither [floyd|bayer|none]`, bare = floyd), nur bei Farbreduktion.
 - Skalierung: `ImageScaler`; CLI `--width/--height/--fit/--upscale`. Terminalgröße per `CSI 14t/16t` + DA1 als Sentinel, Fallback 10x20-Zellen mit Warnung.
-- Terminal-Check: DA1, Sixel = Attribut 4 (erster Parameter = Klasse).
+- Terminal-Check: DA1, Sixel = Attribut 4 (erster Parameter = Klasse). Bei Erfolg zeigt `check` ein kleines Testbild (CLI-Klasse `TestImage`, 128x64: Farbbalken, 16-stufiges Grau, Schachbrett, Rot-Blau-Verlauf; wenige Farben = exakte Palette), bei Misserfolg nichts.
 - `--show` (nur encode): Terminal-Ausgabe erzwungen (sonst Fehler, Exit 1), DA1-Warnung bei fehlender Sixel-Meldung (entfällt bei Eingabe `-`), Zeilenumbruch nach dem Bild. Ohne `-o` nur anzeigen, mit `-o` speichern + anzeigen. Sixel-Eingabe nur per DCS-Header erkannt (`SixelDecoder.LooksLikeSixel`, bewusst keine Rohtext-Heuristik): ohne Größen-/Farb-/Dither-Option unverändert durchgereicht (vorher per Decode validiert), sonst dekodiert + neu enkodiert.
 
 ## Status / Offen
-- Fertig: Decoder, Encoder (+Dithering), BMP, Skia, CLI (encode/decode/check, Skalierung), lokale NuGets, Single-File-Publish, Benutzer-README. 231 Tests grün.
-- Windows real verifiziert (check, --fit, --show inkl. Sixel-Datei-Eingabe/Speichern, Publish-Exe). Unix-Pfad (`stty`) ungetestet.
+- Fertig: Decoder, Encoder (+Dithering), BMP, Skia, CLI (encode/decode/check, Skalierung), lokale NuGets, Single-File-Publish, Benutzer-README. 247 Tests grün.
+- Windows real verifiziert (check inkl. Testbild, --fit, --show inkl. Sixel-Datei-Eingabe/Speichern, Publish-Exe). Unix-Pfad (`stty`) ungetestet.
 - Offen: Linux-Natives (`SkiaSharp.NativeAssets.Linux`) + Unix-Test; NuGet-Repo-URL (bewusst offen); Autor ist gesetzt.
 - Details/Messwerte/Historie → `CLAUDE-History.md`.

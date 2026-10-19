@@ -16,7 +16,7 @@ Author: Alexander Feuster. Detailed user manuals: [`Docs/README.txt`](Docs/READM
 SharpSixel encode <input> [-o <file>] [--show] [--colors <2-256>] [--dither [floyd|bayer|none]]
                   [--width <px>] [--height <px>] [--fit] [--upscale]
 SharpSixel decode <input> -o <file>      # .bmp, .png, .jpg
-SharpSixel check                         # exit 0 if the terminal reports sixel support (DA1)
+SharpSixel check                         # exit 0 if the terminal reports sixel support (DA1); shows a small test image
 ```
 
 - `<input>` may be `-` for stdin. `encode` without `-o` writes sixel to stdout. A sixel file (header `ESC P ... q`) is

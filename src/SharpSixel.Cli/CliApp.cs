@@ -20,6 +20,7 @@ internal static class CliApp
                  A sixel file (header ESC P ... q) is passed through unchanged unless size/color options are given.
         decode   input: sixel; output format by extension: .bmp, .png, .jpg, .jpeg.
         check    asks the terminal whether it supports sixel; exit code 0 = yes, 1 = no/unknown.
+                 On success a small test image is displayed.
 
         Options:
           -o, --output <file>   output file
@@ -96,6 +97,15 @@ internal static class CliApp
         env.Output.WriteLine(supported
             ? "Terminal supports sixel graphics."
             : "Terminal does not support sixel graphics (or did not answer).");
+        env.Output.Flush();
+
+        if (supported)
+        {
+            // Visual confirmation: if the pattern shows up, sixel display really works.
+            byte[] testImage = new SixelEncoder().EncodeToBytes(TestImage.Create());
+            WriteSixelToStdout(testImage, endWithNewLine: true, env);
+        }
+
         return supported ? 0 : 1;
     }
 

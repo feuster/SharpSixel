@@ -88,7 +88,7 @@ Uninstall: delete the exe, optionally remove the folder %TEMP%\.net\SharpSixel.
 
 5. QUICK START
 --------------
-Check whether the terminal supports sixel:
+Check whether the terminal supports sixel (a small test image appears on success):
 
     SharpSixel check
 
@@ -168,6 +168,13 @@ Output: "Terminal supports sixel graphics." (exit code 0) or
 "Terminal does not support sixel graphics (or did not answer)." (exit code 1).
 If the terminal does not answer within about one second, or if input/output is
 redirected (pipe, file), the result is "not supported".
+
+If the test succeeds, SharpSixel additionally displays a small built-in test
+image (128 x 64 pixels) in the terminal: eight color bars at the top (white,
+yellow, cyan, green, magenta, red, blue, black), below them a gray ramp with 16
+steps, a checkerboard at the bottom left and a red-to-blue gradient at the
+bottom right. If you see this image, sixel display really works. On failure no
+image is output.
 
 
 7. OPTIONS IN DETAIL

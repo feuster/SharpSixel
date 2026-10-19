@@ -90,7 +90,7 @@ entfernen.
 
 5. SCHNELLSTART
 ---------------
-Prüfen, ob das Terminal Sixel kann:
+Prüfen, ob das Terminal Sixel kann (bei Erfolg erscheint ein kleines Testbild):
 
     SharpSixel check
 
@@ -172,6 +172,13 @@ Ausgabe: "Terminal supports sixel graphics." (Exit-Code 0) oder
 Antwortet das Terminal nicht innerhalb von etwa einer Sekunde oder sind
 Ein-/Ausgabe umgeleitet (Pipe, Datei), gilt das Ergebnis als "nicht
 unterstützt".
+
+Ist der Test erfolgreich, zeigt SharpSixel zusätzlich ein kleines eingebautes
+Testbild (128 × 64 Pixel) im Terminal an: oben acht Farbbalken (Weiß, Gelb,
+Cyan, Grün, Magenta, Rot, Blau, Schwarz), darunter ein Graustufenverlauf mit 16
+Stufen, unten links ein Schachbrettmuster und unten rechts ein Verlauf von Rot
+nach Blau. Erscheint dieses Bild, funktioniert die Sixel-Darstellung wirklich.
+Bei Misserfolg wird kein Bild ausgegeben.
 
 
 7. OPTIONEN IM DETAIL

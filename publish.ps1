@@ -1,7 +1,7 @@
 # Single run, four deliverables (Release only, nothing is uploaded anywhere):
 #   publish\SharpSixel.exe     standalone single-file CLI (win-x64, self-contained)
-#   publish\README.txt         user manual (German), copied from Docs\README.txt
-#   publish\README.en.txt      user manual (English), copied from Docs\README.en.txt
+#   publish\README.txt         user manual (German), copied from docs\README.txt
+#   publish\README.en.txt      user manual (English), copied from docs\README.en.txt
 #   publish\nuget\*.nupkg      local NuGet packages SharpSixel and SharpSixel.Skia
 # Optional: .\publish.ps1 -Version 0.2.0 sets the version of the exe and of both packages.
 param([string]$Version)
@@ -17,7 +17,7 @@ function Invoke-Step([string]$Name, [scriptblock]$Command) {
 $versionArgs = @()
 if ($Version) { $versionArgs = @("-p:Version=$Version") }
 
-foreach ($manual in 'Docs\README.txt', 'Docs\README.en.txt') {
+foreach ($manual in 'docs\README.txt', 'docs\README.en.txt') {
     if (-not (Test-Path $manual)) { throw "$manual is missing." }
 }
 

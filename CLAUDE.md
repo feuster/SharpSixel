@@ -1,13 +1,14 @@
 # SharpSixel – Sixel Encoder/Decoder (C#)
 
 Sixel-Grafiken (DECSIXEL) enkodieren/dekodieren. Autor: Alexander Feuster, MIT. Teil einer CLI; Kern als NuGet portierbar.
-Repo-Ordner: `C:\ai\SharpSixel` (vorher `C:\ai\Sixel`).
+Repo-Ordner: `C:\ai\SharpSixel` (vorher `C:\ai\Sixel`). GitHub: https://github.com/feuster/SharpSixel (Branch `master`). CI: `.github/workflows/dotnet.yml` (windows-latest, .NET 10, restore/build/test bei Push und PR auf master; Status-Badge in den READMEs). Repo-URL steht auch in den NuGet-Metadaten (`Directory.Build.props`).
+GitHub-READMEs: `README.md` (englisch) und `README.de.md` (deutsch), inhaltlich deckungsgleich pflegen; Screenshot `docs/images/check.png`. Ordnername `docs` klein (GitHub ist case-sensitiv, Git-Index muss zur Platte passen).
 
 ## Struktur
 - `src/SharpSixel` – Kern, **0 Abhängigkeiten**, `netstandard2.0;net10.0`: `SixelImage`, `SixelEncoder`, `SixelDecoder`, `BmpCodec`, `ImageScaler`, `SixelTerminal` (DA1 + Pixelgröße, I/O-agnostisch). Namespace `SharpSixel`; Typnamen `Sixel*` bleiben (Format).
 - `src/SharpSixel.Skia` – SkiaSharp-Adapter (PNG/JPEG), eigenes NuGet `SharpSixel.Skia`
 - `src/SharpSixel.Cli` – `encode`/`decode`/`check` (`CliApp` testbar über `CliEnvironment`; `ConsoleTerminal` = Raw-Mode + Timeout)
-- `tests/SharpSixel.Tests` – xUnit. `Docs/`: `README.txt` (Benutzer-Anleitung deutsch, mit echten Umlauten/ß), `README.en.txt` (englische Version, gleicher Inhalt) – beide werden beim Publish nach `publish/` kopiert; `all-about-sixels.txt` (Spec)
+- `tests/SharpSixel.Tests` – xUnit. `docs/`: `README.txt` (Benutzer-Anleitung deutsch, mit echten Umlauten/ß), `README.en.txt` (englische Version, gleicher Inhalt) – beide werden beim Publish nach `publish/` kopiert; `all-about-sixels.txt` (Spec)
 
 ## Befehle
 - Test: `dotnet test`
@@ -22,7 +23,7 @@ Repo-Ordner: `C:\ai\SharpSixel` (vorher `C:\ai\Sixel`).
 - Code/Kommentare englisch; Chat deutsch, knapp. Clean Code, kleine Klassen; Fehler vor neuen Features beheben; Public API mit XML-Doku (TreatWarningsAsErrors).
 - Pixelformat: RGBA8888, straight alpha, zeilenweise.
 - Publish-Profil (`src/SharpSixel.Cli/Properties/PublishProfiles/win-x64.pubxml`) gilt nur beim Publish (kein RID im Projekt). Skia-Native im Bundle, PDBs entfernt, Exe-Umbenennung + README-Kopie im Target `FinalizeSingleFileExe`. Kein Trimming (Skia/P-Invoke).
-- Nutzerdoku `Docs/README.txt` und `Docs/README.en.txt` bei Feature-/CLI-Änderungen gemeinsam pflegen (inhaltlich deckungsgleich, deutsche Version mit ä/ö/ü/ß statt ae/oe/ue/ss-Umschreibung). Beide enthalten einen freiwilligen KI-Hinweis mit Modellversion (Abschnitt 16: Claude Sonnet 5.5, laut Autor die einzige eingesetzte Modellversion) – bei Modellwechsel aktualisieren.
+- Nutzerdoku `docs/README.txt` und `docs/README.en.txt` bei Feature-/CLI-Änderungen gemeinsam pflegen (inhaltlich deckungsgleich, deutsche Version mit ä/ö/ü/ß statt ae/oe/ue/ss-Umschreibung). Beide enthalten einen freiwilligen KI-Hinweis mit Modellversion (Abschnitt 16: Claude Sonnet 5.5, laut Autor die einzige eingesetzte Modellversion) – bei Modellwechsel aktualisieren.
 
 ## Spec-Entscheidungen
 - P1-Tabelle nach VT330/340-Handbuch (0/1→2:1, 2→5:1, 3/4→3:1, 5/6→2:1, 7-9→1:1); `all-about-sixels.txt` weicht ab (veraltet).
@@ -38,5 +39,5 @@ Repo-Ordner: `C:\ai\SharpSixel` (vorher `C:\ai\Sixel`).
 ## Status / Offen
 - Fertig: Decoder, Encoder (+Dithering), BMP, Skia, CLI (encode/decode/check, Skalierung), lokale NuGets, Single-File-Publish, Benutzer-README. 247 Tests grün.
 - Windows real verifiziert (check inkl. Testbild, --fit, --show inkl. Sixel-Datei-Eingabe/Speichern, Publish-Exe). Unix-Pfad (`stty`) ungetestet.
-- Offen: Linux-Natives (`SkiaSharp.NativeAssets.Linux`) + Unix-Test; NuGet-Repo-URL (bewusst offen); Autor ist gesetzt.
+- Offen: Linux-Natives (`SkiaSharp.NativeAssets.Linux`) + Unix-Test (evtl. zusätzlicher Linux-CI-Job); Autor und Repo-URL sind gesetzt.
 - Details/Messwerte/Historie → `CLAUDE-History.md`.

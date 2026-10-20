@@ -1,8 +1,11 @@
 # SharpSixel
 
+English | [Deutsch](README.de.md)
+
 **Sixel graphics for .NET: a dependency-free encoder/decoder library, PNG/JPEG support via SkiaSharp, and a command line tool that shows images right in your terminal.**
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+[![.NET build](https://github.com/feuster/SharpSixel/actions/workflows/dotnet.yml/badge.svg?branch=master)](https://github.com/feuster/SharpSixel/actions/workflows/dotnet.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10.0%20%7C%20netstandard2.0-512BD4)
 ![Platform](https://img.shields.io/badge/CLI-win--x64-lightgrey)
 
@@ -18,6 +21,10 @@ Terminal supports sixel graphics.
 $ SharpSixel encode photo.jpg --show --fit
 [the photo appears in the terminal, scaled to the window]
 ```
+
+![SharpSixel check in Windows Terminal: color bars, gray ramp, checkerboard and red-to-blue gradient](docs/images/check.png)
+
+*`SharpSixel check` in Windows Terminal: the built-in test pattern is drawn as sixel graphics.*
 
 ## Contents
 
@@ -58,9 +65,12 @@ $ SharpSixel encode photo.jpg --show --fit
 
 ## Quick start
 
-Build the standalone executable, the NuGet packages and copy the manuals into `publish/` (requires the .NET 10 SDK):
+Clone the repository and build the standalone executable, the NuGet packages and the manuals into `publish/`
+(requires the .NET 10 SDK):
 
 ```powershell
+git clone https://github.com/feuster/SharpSixel.git
+cd SharpSixel
 ./publish.ps1
 ```
 
@@ -101,8 +111,8 @@ color or dithering options are given, in which case it is decoded, adjusted and 
 
 Exit codes: `0` success, `1` runtime error (or `check`: not supported), `2` usage error.
 
-The complete user manual, including troubleshooting, is in [`Docs/README.en.txt`](Docs/README.en.txt)
-(German: [`Docs/README.txt`](Docs/README.txt)).
+The complete user manual, including troubleshooting, is in [`docs/README.en.txt`](docs/README.en.txt)
+(German: [`docs/README.txt`](docs/README.txt)).
 
 ## Library
 
@@ -162,6 +172,9 @@ README.txt, README.en.txt   user manuals (German, English)
 nuget/                      SharpSixel and SharpSixel.Skia packages
 ```
 
+Every push and pull request to `master` is built and tested by GitHub Actions
+([`.github/workflows/dotnet.yml`](.github/workflows/dotnet.yml): `windows-latest`, .NET 10).
+
 ## Project layout
 
 ```
@@ -169,15 +182,15 @@ src/SharpSixel/         core library (no dependencies)
 src/SharpSixel.Skia/    SkiaSharp adapter (PNG/JPEG)
 src/SharpSixel.Cli/     command line tool
 tests/SharpSixel.Tests/ xUnit tests
-Docs/                   user manuals and sixel notes
+docs/                   user manuals and sixel notes
 publish.ps1             publish + pack in one run
 ```
 
 ## Documentation
 
-- [`Docs/README.en.txt`](Docs/README.en.txt): user manual (English)
-- [`Docs/README.txt`](Docs/README.txt): Benutzeranleitung (Deutsch)
-- [`Docs/all-about-sixels.txt`](Docs/all-about-sixels.txt): sixel format notes used as a starting point
+- [`docs/README.en.txt`](docs/README.en.txt): user manual (English)
+- [`docs/README.txt`](docs/README.txt): Benutzeranleitung (Deutsch)
+- [`docs/all-about-sixels.txt`](docs/all-about-sixels.txt): sixel format notes used as a starting point
 
 ## Limits and status
 

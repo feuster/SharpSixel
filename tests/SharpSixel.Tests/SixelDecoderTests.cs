@@ -14,7 +14,7 @@ public class SixelDecoderTests
     [Fact]
     public void Decode_SpecExample_RendersYellowRectangleWithGreenHi()
     {
-        // Example from Docs/all-about-sixels.txt, section V. Two bands => 12 rows.
+        // Example from docs/all-about-sixels.txt, section V. Two bands => 12 rows.
         string data = Esc + "Pq\n#0;2;0;0;0#1;2;100;100;0#2;2;0;100;0\n"
                       + "#1~~@@vv@@~~@@~~$\n#2??}}GG}}??}}??-\n#1!14@\n" + Esc + "\\";
 

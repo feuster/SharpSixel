@@ -31,16 +31,20 @@ internal static class ConsoleTerminal
 
         if (info.HasTextAreaSize)
         {
-            int cellHeight = info.HasCellSize ? info.CellHeight : info.TextAreaHeight / rows;
-            return new TerminalSize(info.TextAreaWidth, Math.Max(1, info.TextAreaHeight - cellHeight), false);
+            int cellWidth = info.HasCellSize ? info.CellWidth : Math.Max(1, info.TextAreaWidth / columns);
+            int cellHeight = info.HasCellSize ? info.CellHeight : Math.Max(1, info.TextAreaHeight / rows);
+            return new TerminalSize(
+                info.TextAreaWidth, Math.Max(1, info.TextAreaHeight - cellHeight), false, cellWidth, cellHeight);
         }
 
         if (info.HasCellSize)
         {
-            return new TerminalSize(columns * info.CellWidth, Math.Max(1, (rows - 1) * info.CellHeight), false);
+            return new TerminalSize(
+                columns * info.CellWidth, Math.Max(1, (rows - 1) * info.CellHeight), false, info.CellWidth, info.CellHeight);
         }
 
-        return new TerminalSize(columns * AssumedCellWidth, Math.Max(1, (rows - 1) * AssumedCellHeight), true);
+        return new TerminalSize(
+            columns * AssumedCellWidth, Math.Max(1, (rows - 1) * AssumedCellHeight), true, AssumedCellWidth, AssumedCellHeight);
     }
 
     private static bool TryGetCells(out int columns, out int rows)

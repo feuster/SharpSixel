@@ -2,7 +2,7 @@
  SharpSixel  -  Sixel-Grafiken enkodieren und dekodieren
 ================================================================================
 
- Version : 0.1.0  (aktuelle Version des Programms: SharpSixel --version)
+ Version : 1.0.0  (aktuelle Version des Programms: SharpSixel --version)
  Autor   : Alexander Feuster
  Lizenz  : MIT
  English version: README.en.txt
@@ -22,7 +22,7 @@ INHALT
   7. Optionen im Detail
        7.1  Farbanzahl (--colors)
        7.2  Dithering (--dither)
-       7.3  Bildgröße anpassen (--width, --height, --fit, --upscale)
+       7.3  Bildgröße anpassen (--width, --height, --cols, --rows, --fit, --upscale)
        7.4  Transparenz
        7.5  Anzeige im Terminal (--show)
   8. Eingabe und Ausgabe über Dateien und Pipes
@@ -130,7 +130,8 @@ Aufruf:
 
     SharpSixel encode <Eingabe> [-o <Datei>] [--show] [--colors <2-256>]
                       [--dither [floyd|bayer|none]]
-                      [--width <px>] [--height <px>] [--fit] [--upscale]
+                      [--width <px>] [--height <px>] [--cols <n>] [--rows <n>]
+                      [--fit] [--upscale]
 
   <Eingabe>   Pfad zu einer Bilddatei oder "-" für die Standardeingabe.
               Unterstützt: BMP (1/4/8/16/24/32 Bit, unkomprimiert), PNG, JPEG
@@ -220,14 +221,16 @@ unverändert.
 
 Beispiel:  SharpSixel encode foto.jpg --colors 16 --dither bayer
 
-7.3  Bildgröße anpassen (--width, --height, --fit, --upscale)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+7.3  Bildgröße anpassen (--width, --height, --cols, --rows, --fit, --upscale)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Große Bilder erzeugen sehr viele Daten und überfüllen das Terminal. Mit den
 folgenden Optionen wird das Bild vor dem Enkodieren verkleinert. Das
 Seitenverhältnis bleibt immer erhalten.
 
     --width <px>      maximale Breite in Pixeln
     --height <px>     maximale Höhe in Pixeln
+    --cols <n>        maximale Breite in Zeichenzellen des Terminals
+    --rows <n>        maximale Höhe in Zeichenzellen des Terminals
     --fit             in den darstellbaren Bereich des Terminals einpassen
     --upscale         kleine Bilder auch vergrößern (bis zum Limit)
 
@@ -237,12 +240,22 @@ Regeln:
   * --width und --height dürfen einzeln oder zusammen angegeben werden; das
     Bild wird so skaliert, dass beide Grenzen eingehalten werden.
   * --fit fragt das Terminal nach seiner Größe in Pixeln. Ist eine Achse per
-    --width oder --height vorgegeben, hat diese Vorrang; die andere Achse
-    kommt vom Terminal. Von der Terminalhöhe wird eine Textzeile abgezogen,
-    damit der Prompt nicht aus dem Fenster scrollt.
+    --width, --height, --cols oder --rows vorgegeben, hat diese Vorrang; die
+    andere Achse kommt vom Terminal. Von der Terminalhöhe wird eine Textzeile
+    abgezogen, damit der Prompt nicht aus dem Fenster scrollt.
   * --fit braucht ein Terminal an Standardeingabe und Standardausgabe. Bei
     umgeleiteter Ausgabe (Datei, Pipe) bricht das Programm mit einem Hinweis
     ab; dann --width/--height verwenden.
+  * --cols und --rows sind die zellenbasierten Gegenstücke zu --width und
+    --height. Das Programm fragt das Terminal nach der Pixelgröße einer
+    Zeichenzelle und multipliziert sie mit der angegebenen Zellenzahl (z. B.
+    --cols 60 bei 10 Pixel breiten Zellen = höchstens 600 Pixel). Pro Achse
+    darf nur eine Einheit verwendet werden: --width zusammen mit --cols (bzw.
+    --height zusammen mit --rows) wird abgelehnt; achsenübergreifend ist
+    Mischen erlaubt (--cols 60 --height 300). --cols/--rows brauchen ebenfalls
+    ein Terminal an Standardeingabe und Standardausgabe. Das Ergebnis ist eine
+    Obergrenze, keine Garantie für exakt n Zellen: Sixel-Höhen entstehen in
+    6-Pixel-Bändern, und die Cursorposition nach dem Bild hängt vom Terminal ab.
   * Meldet das Terminal seine Pixelgröße nicht, schätzt das Programm
     10 × 20 Pixel pro Zeichenzelle und gibt auf der Fehlerausgabe die Warnung
     "terminal did not report its pixel size" aus.
@@ -253,6 +266,7 @@ Beispiele:
 
     SharpSixel encode foto.jpg --fit
     SharpSixel encode foto.jpg --width 640
+    SharpSixel encode foto.jpg --cols 60 --rows 20
     SharpSixel encode icon.png --width 128 --upscale
     SharpSixel encode foto.jpg --fit --width 400 -o klein.six
 

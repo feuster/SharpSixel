@@ -26,6 +26,12 @@ internal sealed class CliArguments
 
     public int? Height { get; private set; }
 
+    /// <summary>Maximum width in terminal character cells (alternative to <see cref="Width"/>).</summary>
+    public int? Columns { get; private set; }
+
+    /// <summary>Maximum height in terminal character cells (alternative to <see cref="Height"/>).</summary>
+    public int? Rows { get; private set; }
+
     public bool Fit { get; private set; }
 
     public bool Upscale { get; private set; }
@@ -38,7 +44,7 @@ internal sealed class CliArguments
 
     /// <summary>True if any option changes the image (size, colors, dithering), so sixel input cannot be passed through.</summary>
     public bool HasProcessingOptions =>
-        Width != null || Height != null || Fit || ColorsSpecified || DitherSpecified;
+        Width != null || Height != null || Columns != null || Rows != null || Fit || ColorsSpecified || DitherSpecified;
 
     public bool Help { get; private set; }
 
@@ -69,6 +75,12 @@ internal sealed class CliArguments
                 case "--height":
                     result.Height = ParsePositive(RequireValue(args, ref i, arg), arg);
                     break;
+                case "--cols":
+                    result.Columns = ParsePositive(RequireValue(args, ref i, arg), arg);
+                    break;
+                case "--rows":
+                    result.Rows = ParsePositive(RequireValue(args, ref i, arg), arg);
+                    break;
                 case "--fit":
                     result.Fit = true;
                     break;
@@ -90,6 +102,16 @@ internal sealed class CliArguments
                     result.AddPositional(arg);
                     break;
             }
+        }
+
+        if (result.Width != null && result.Columns != null)
+        {
+            throw new UsageException("--width and --cols both limit the width; use only one");
+        }
+
+        if (result.Height != null && result.Rows != null)
+        {
+            throw new UsageException("--height and --rows both limit the height; use only one");
         }
 
         return result;

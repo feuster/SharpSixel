@@ -1,7 +1,10 @@
 namespace SharpSixel.Cli;
 
-/// <summary>Drawable terminal area in pixels; <see cref="Estimated"/> is true if cell size had to be guessed.</summary>
-internal sealed record TerminalSize(int Width, int Height, bool Estimated);
+/// <summary>
+/// Drawable terminal area in pixels plus the size of one character cell in pixels;
+/// <see cref="Estimated"/> is true if the cell size had to be guessed.
+/// </summary>
+internal sealed record TerminalSize(int Width, int Height, bool Estimated, int CellWidth, int CellHeight);
 
 /// <summary>I/O channels of the CLI; replaceable in tests.</summary>
 internal sealed class CliEnvironment

@@ -89,7 +89,7 @@ cd publish
 
 ```
 SharpSixel encode <input> [-o <file>] [--show] [--colors <2-256>] [--dither [floyd|bayer|none]]
-                  [--width <px>] [--height <px>] [--fit] [--upscale]
+                  [--width <px>] [--height <px>] [--cols <n>] [--rows <n>] [--fit] [--upscale]
 SharpSixel decode <input> -o <file>      # .bmp, .png, .jpg
 SharpSixel check                         # exit 0 if the terminal reports sixel support; shows a test image
 ```
@@ -102,6 +102,7 @@ SharpSixel check                         # exit 0 if the terminal reports sixel 
 | `--colors <n>` | Maximum palette colors, 2-256 (default 256) |
 | `--dither [mode]` | `floyd` (also the default for a bare `--dither`), `bayer`, or `none` |
 | `--width <px>`, `--height <px>` | Shrink to fit, aspect ratio kept |
+| `--cols <n>`, `--rows <n>` | Like `--width`/`--height`, but in terminal character cells (needs a terminal; not combinable with the pixel option of the same axis) |
 | `--fit` | Fit into the terminal's drawable area (queried from the terminal) |
 | `--upscale` | Also enlarge small images up to the given limits |
 | `-h, --help`, `--version` | Help and version |

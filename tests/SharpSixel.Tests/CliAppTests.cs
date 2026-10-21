@@ -211,7 +211,7 @@ public sealed class CliAppTests : IDisposable
     [Fact]
     public void Encode_Fit_UsesTerminalSize()
     {
-        _terminalSize = new TerminalSize(2, 100, false);
+        _terminalSize = new TerminalSize(2, 100, false, 1, 1);
 
         SixelImage decoded = EncodeAndDecode("--fit");
 
@@ -222,7 +222,7 @@ public sealed class CliAppTests : IDisposable
     [Fact]
     public void Encode_FitWithExplicitWidth_ExplicitAxisWins()
     {
-        _terminalSize = new TerminalSize(2, 100, false);
+        _terminalSize = new TerminalSize(2, 100, false, 1, 1);
 
         SixelImage decoded = EncodeAndDecode("--fit", "--width", "4");
 
@@ -233,7 +233,7 @@ public sealed class CliAppTests : IDisposable
     [Fact]
     public void Encode_FitWithBothLimits_DoesNotQueryTerminal()
     {
-        _terminalSize = new TerminalSize(1, 1, false);
+        _terminalSize = new TerminalSize(1, 1, false, 1, 1);
 
         SixelImage decoded = EncodeAndDecode("--fit", "--width", "2", "--height", "3");
 
@@ -255,12 +255,93 @@ public sealed class CliAppTests : IDisposable
     [Fact]
     public void Encode_FitWithEstimatedSize_WarnsOnStderr()
     {
-        _terminalSize = new TerminalSize(2, 100, true);
+        _terminalSize = new TerminalSize(2, 100, true, 1, 1);
 
         Result result = Run(null, "encode", WriteBmp("in.bmp"), "--fit");
 
         Assert.Equal(0, result.ExitCode);
         Assert.StartsWith("warning:", result.Error);
+    }
+
+    [Theory]
+    [InlineData("--cols", "1", 2, 3)]
+    [InlineData("--cols", "100", 4, 6)]
+    [InlineData("--rows", "1", 2, 3)]
+    [InlineData("--rows", "2", 4, 6)]
+    public void Encode_ColsOrRows_AreConvertedWithCellSize(string option, string value, int width, int height)
+    {
+        _terminalSize = new TerminalSize(1000, 1000, false, 2, 3);
+
+        SixelImage decoded = EncodeAndDecode(option, value);
+
+        Assert.Equal(width, decoded.Width);
+        Assert.Equal(height, decoded.Height);
+    }
+
+    [Fact]
+    public void Encode_ColsAndRows_BothLimitsApply()
+    {
+        _terminalSize = new TerminalSize(1000, 1000, false, 2, 3);
+
+        SixelImage decoded = EncodeAndDecode("--cols", "100", "--rows", "1");
+
+        Assert.Equal(2, decoded.Width);
+        Assert.Equal(3, decoded.Height);
+    }
+
+    [Fact]
+    public void Encode_ColsWithHeightInPixels_MixesUnitsPerAxis()
+    {
+        _terminalSize = new TerminalSize(1000, 1000, false, 4, 3);
+
+        SixelImage decoded = EncodeAndDecode("--cols", "100", "--height", "3");
+
+        Assert.Equal(2, decoded.Width);
+        Assert.Equal(3, decoded.Height);
+    }
+
+    [Fact]
+    public void Encode_ColsWithFit_ColsWinsAndFitFillsOtherAxis()
+    {
+        _terminalSize = new TerminalSize(1000, 3, false, 2, 3);
+
+        SixelImage decoded = EncodeAndDecode("--fit", "--cols", "100");
+
+        Assert.Equal(2, decoded.Width);
+        Assert.Equal(3, decoded.Height);
+    }
+
+    [Fact]
+    public void Encode_ColsWithoutTerminal_ReturnsExitCode1()
+    {
+        _terminalSize = null;
+
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "--cols", "2");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("--cols", result.Error);
+    }
+
+    [Fact]
+    public void Encode_ColsWithEstimatedCellSize_WarnsOnStderr()
+    {
+        _terminalSize = new TerminalSize(1000, 1000, true, 10, 20);
+
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "--rows", "1");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.StartsWith("warning:", result.Error);
+    }
+
+    [Fact]
+    public void SixelInput_WithColsOption_IsDecodedAndScaled()
+    {
+        _terminalSize = new TerminalSize(1000, 1000, false, 2, 3);
+
+        Result result = Run(null, "encode", WriteSixel("in.six"), "--show", "--cols", "1");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(2, new SixelDecoder().Decode(result.Stdout).Width);
     }
 
     [Fact]
@@ -585,6 +666,12 @@ public sealed class CliAppTests : IDisposable
     [InlineData("encode", "x", "--width", "abc")]
     [InlineData("encode", "x", "--height", "-1")]
     [InlineData("encode", "x", "--height")]
+    [InlineData("encode", "x", "--cols", "0")]
+    [InlineData("encode", "x", "--cols", "abc")]
+    [InlineData("encode", "x", "--rows", "-1")]
+    [InlineData("encode", "x", "--rows")]
+    [InlineData("encode", "x", "--width", "10", "--cols", "2")]
+    [InlineData("encode", "x", "--rows", "2", "--height", "10")]
     public void InvalidUsage_ReturnsExitCode2(params string[] args)
     {
         Result result = Run(null, args);

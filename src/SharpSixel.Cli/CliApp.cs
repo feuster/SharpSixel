@@ -11,7 +11,7 @@ internal static class CliApp
     private const string Usage = """
         Usage:
           SharpSixel encode <input> [-o <file>] [--show] [--colors <2-256>] [--dither [floyd|bayer|none]]
-                       [--width <px>] [--height <px>] [--fit] [--upscale]
+                       [--width <px>] [--height <px>] [--cols <n>] [--rows <n>] [--fit] [--upscale]
           SharpSixel decode <input> -o <file>
           SharpSixel check
 
@@ -31,8 +31,12 @@ internal static class CliApp
                                 is given, Floyd-Steinberg), bayer (ordered 8x8) or none
           --width <px>          fit the image into this width (keeps aspect ratio)
           --height <px>         fit the image into this height (keeps aspect ratio)
+          --cols <n>            like --width, but in terminal character cells (needs a terminal on
+                                stdin/stdout; cannot be combined with --width)
+          --rows <n>            like --height, but in terminal character cells (needs a terminal on
+                                stdin/stdout; cannot be combined with --height)
           --fit                 fit into the terminal's drawable area (needs a terminal on stdin/stdout);
-                                --width/--height take precedence per axis
+                                --width/--height/--cols/--rows take precedence per axis
           --upscale             also enlarge small images to the given limits (default: shrink only)
           -h, --help            show this help
           --version             show version
@@ -197,17 +201,26 @@ internal static class CliApp
     {
         int? maxWidth = arguments.Width;
         int? maxHeight = arguments.Height;
-        if (arguments.Fit && (maxWidth == null || maxHeight == null))
+        bool widthFromTerminal = maxWidth == null && arguments.Columns == null;
+        bool heightFromTerminal = maxHeight == null && arguments.Rows == null;
+        bool usesCells = arguments.Columns != null || arguments.Rows != null;
+        if (usesCells || (arguments.Fit && (widthFromTerminal || heightFromTerminal)))
         {
+            string option = arguments.Columns != null ? "--cols" : arguments.Rows != null ? "--rows" : "--fit";
             TerminalSize size = env.QueryTerminalSize()
-                                ?? throw new SixelException("--fit needs a terminal on stdin and stdout; use --width/--height instead.");
+                                ?? throw new SixelException($"{option} needs a terminal on stdin and stdout; use --width/--height instead.");
             if (size.Estimated)
             {
                 env.Error.WriteLine("warning: terminal did not report its pixel size; assuming 10x20 pixel cells.");
             }
 
-            maxWidth ??= size.Width;
-            maxHeight ??= size.Height;
+            maxWidth ??= arguments.Columns * size.CellWidth;
+            maxHeight ??= arguments.Rows * size.CellHeight;
+            if (arguments.Fit)
+            {
+                maxWidth ??= size.Width;
+                maxHeight ??= size.Height;
+            }
         }
 
         return ImageScaler.Fit(image, maxWidth, maxHeight, arguments.Upscale);

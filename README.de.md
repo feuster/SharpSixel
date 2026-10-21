@@ -26,6 +26,10 @@ $ SharpSixel encode foto.jpg --show --fit
 
 *`SharpSixel check` im Windows Terminal: Das eingebaute Testbild wird als Sixel-Grafik gezeichnet.*
 
+![Foto eines Papageis, als Sixel-Grafik im Windows Terminal dargestellt](docs/images/demo.png)
+
+*Ein Foto als Sixel-Grafik im Windows Terminal. Foto: ["The Superb Parrot"](https://creativecommons.org/publicdomain/zero/1.0/) von Bernard Spragg, CC0 1.0.*
+
 ## Inhalt
 
 - [Funktionen](#funktionen)

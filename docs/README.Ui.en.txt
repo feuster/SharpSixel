@@ -2,7 +2,7 @@
  SharpSixelUI / SharpSixel.Ui  -  Terminal widgets drawn as sixel graphics
 ================================================================================
 
- Version : 1.2.0
+ Version : 1.3.0
  Author  : Alexander Feuster
  License : MIT
  Deutsche Version: README.Ui.txt

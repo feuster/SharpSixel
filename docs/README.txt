@@ -2,7 +2,7 @@
  SharpSixel  -  Sixel-Grafiken enkodieren und dekodieren
 ================================================================================
 
- Version : 1.1.0  (aktuelle Version des Programms: SharpSixel --version)
+ Version : 1.3.0  (aktuelle Version des Programms: SharpSixel --version)
  Autor   : Alexander Feuster
  Lizenz  : MIT
  English version: README.en.txt
@@ -465,6 +465,11 @@ Beispiel: PNG/JPEG über SharpSixel.Skia, Bild verkleinern
     SixelImage small = ImageScaler.Fit(image, maxWidth: 800, maxHeight: 600);
     byte[] png = SkiaImageCodec.Encode(small, SKEncodedImageFormat.Png);
 
+    // Fit behält das Seitenverhältnis und macht das Bild innerhalb der Grenzen so groß wie möglich
+    // (kleine Bilder werden vergrößert; allowUpscale: false = nur verkleinern).
+    // Stretch nutzt die Grenzen vollständig und behält das Seitenverhältnis nicht bei:
+    SixelImage filled = ImageScaler.Stretch(image, maxWidth: 800, maxHeight: 600);
+
 Wichtige Typen:
 
   SixelImage            Pixelpuffer (RGBA, 8 Bit pro Kanal, nicht vormultipliziert)
@@ -474,7 +479,7 @@ Wichtige Typen:
   SixelDecoder          Sixel (string, byte[], Stream) -> Bild
   SixelDecoderOptions   Größenlimits, Anzahl Farbregister, Hintergrundfarbe
   BmpCodec              BMP lesen und schreiben
-  ImageScaler           Resize, Fit, FitSize
+  ImageScaler           Resize, Fit, FitSize, Stretch, StretchSize
   SixelTerminal         Terminal-Abfrage (Sixel-Unterstützung, Pixelgröße)
   SixelException        Fehler bei ungültigen Daten oder Limits
 

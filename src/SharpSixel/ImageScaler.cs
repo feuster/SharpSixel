@@ -6,8 +6,8 @@ namespace SharpSixel;
 public static class ImageScaler
 {
     /// <summary>
-    /// Computes the size that fits into the given limits while keeping the aspect ratio. A null limit means unlimited.
-    /// Without <paramref name="allowUpscale"/> the image is never enlarged.
+    /// Computes the largest size that fits into the given limits while keeping the aspect ratio. A null limit means
+    /// unlimited. Without <paramref name="allowUpscale"/> the image is never enlarged.
     /// </summary>
     public static void FitSize(
         int sourceWidth,
@@ -18,17 +18,7 @@ public static class ImageScaler
         out int width,
         out int height)
     {
-        RequirePositive(sourceWidth, nameof(sourceWidth));
-        RequirePositive(sourceHeight, nameof(sourceHeight));
-        if (maxWidth.HasValue)
-        {
-            RequirePositive(maxWidth.Value, nameof(maxWidth));
-        }
-
-        if (maxHeight.HasValue)
-        {
-            RequirePositive(maxHeight.Value, nameof(maxHeight));
-        }
+        RequireValid(sourceWidth, sourceHeight, maxWidth, maxHeight);
 
         double scale = double.MaxValue;
         if (maxWidth.HasValue)
@@ -50,8 +40,11 @@ public static class ImageScaler
         height = Math.Max(1, (int)Math.Round(sourceHeight * scale));
     }
 
-    /// <summary>Scales the image into the limits (see <see cref="FitSize"/>); returns the same instance if nothing changes.</summary>
-    public static SixelImage Fit(SixelImage source, int? maxWidth, int? maxHeight, bool allowUpscale = false)
+    /// <summary>
+    /// Scales the image as large as possible into the limits while keeping the aspect ratio (see <see cref="FitSize"/>);
+    /// enlarges small images unless <paramref name="allowUpscale"/> is false. Returns the same instance if nothing changes.
+    /// </summary>
+    public static SixelImage Fit(SixelImage source, int? maxWidth, int? maxHeight, bool allowUpscale = true)
     {
         if (source == null)
         {
@@ -59,6 +52,40 @@ public static class ImageScaler
         }
 
         FitSize(source.Width, source.Height, maxWidth, maxHeight, allowUpscale, out int width, out int height);
+        return width == source.Width && height == source.Height ? source : Resize(source, width, height);
+    }
+
+    /// <summary>
+    /// Computes the size that uses the given limits completely without keeping the aspect ratio. A null limit keeps the
+    /// source size in that direction. Without <paramref name="allowUpscale"/> a direction is never enlarged.
+    /// </summary>
+    public static void StretchSize(
+        int sourceWidth,
+        int sourceHeight,
+        int? maxWidth,
+        int? maxHeight,
+        bool allowUpscale,
+        out int width,
+        out int height)
+    {
+        RequireValid(sourceWidth, sourceHeight, maxWidth, maxHeight);
+
+        width = StretchAxis(sourceWidth, maxWidth, allowUpscale);
+        height = StretchAxis(sourceHeight, maxHeight, allowUpscale);
+    }
+
+    /// <summary>
+    /// Stretches the image to the limits (see <see cref="StretchSize"/>); the aspect ratio is not kept, so the limits are
+    /// used completely. Returns the same instance if nothing changes.
+    /// </summary>
+    public static SixelImage Stretch(SixelImage source, int? maxWidth, int? maxHeight, bool allowUpscale = true)
+    {
+        if (source == null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        StretchSize(source.Width, source.Height, maxWidth, maxHeight, allowUpscale, out int width, out int height);
         return width == source.Width && height == source.Height ? source : Resize(source, width, height);
     }
 
@@ -152,6 +179,24 @@ public static class ImageScaler
         }
 
         return result;
+    }
+
+    private static int StretchAxis(int source, int? limit, bool allowUpscale) =>
+        !limit.HasValue ? source : allowUpscale ? limit.Value : Math.Min(source, limit.Value);
+
+    private static void RequireValid(int sourceWidth, int sourceHeight, int? maxWidth, int? maxHeight)
+    {
+        RequirePositive(sourceWidth, nameof(sourceWidth));
+        RequirePositive(sourceHeight, nameof(sourceHeight));
+        if (maxWidth.HasValue)
+        {
+            RequirePositive(maxWidth.Value, nameof(maxWidth));
+        }
+
+        if (maxHeight.HasValue)
+        {
+            RequirePositive(maxHeight.Value, nameof(maxHeight));
+        }
     }
 
     private static byte ToByte(float value) =>

@@ -176,7 +176,7 @@ Targets `netstandard2.0` and `net10.0`. `SharpSixel` has no dependencies; `Sharp
 using SharpSixel;
 using SharpSixel.Skia;
 
-// Load any image, shrink it, encode it as sixel
+// Load any image, fit it into 800x600 (aspect ratio kept), encode it as sixel
 SixelImage image = SkiaImageCodec.Decode(File.ReadAllBytes("photo.png"));
 image = ImageScaler.Fit(image, maxWidth: 800, maxHeight: 600);
 
@@ -196,7 +196,7 @@ Without Skia, `BmpCodec.Decode(bytes)` / `BmpCodec.Encode(image)` cover BMP file
 | `SixelImage`, `SixelColor` | RGBA8888 pixel buffer (straight alpha) and color value |
 | `SixelEncoder`, `SixelEncoderOptions` | Image to sixel: `MaxColors`, `AlphaThreshold`, `EmitRasterAttributes`, `Dithering` |
 | `SixelDecoder`, `SixelDecoderOptions` | Sixel to image: size limits, register count, background color; `LooksLikeSixel` |
-| `BmpCodec`, `ImageScaler` | BMP read/write, `Resize` / `Fit` / `FitSize` |
+| `BmpCodec`, `ImageScaler` | BMP read/write, `Resize` / `Fit` / `FitSize` (aspect ratio kept, as large as possible) and `Stretch` / `StretchSize` (limits used completely, aspect ratio ignored) |
 | `SixelTerminal`, `SixelTerminalInfo` | DA1 and pixel size query |
 | `SkiaImageCodec` (`SharpSixel.Skia`) | PNG/JPEG/... conversion and `SKBitmap` interop |
 | `SixelException` | Invalid data or exceeded limits |

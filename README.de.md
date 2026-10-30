@@ -180,7 +180,7 @@ SkiaSharp.
 using SharpSixel;
 using SharpSixel.Skia;
 
-// Beliebiges Bild laden, verkleinern und als Sixel enkodieren
+// Beliebiges Bild laden, in 800x600 einpassen (Seitenverhältnis bleibt), als Sixel enkodieren
 SixelImage image = SkiaImageCodec.Decode(File.ReadAllBytes("foto.png"));
 image = ImageScaler.Fit(image, maxWidth: 800, maxHeight: 600);
 
@@ -200,7 +200,7 @@ Ohne Skia decken `BmpCodec.Decode(bytes)` und `BmpCodec.Encode(image)` BMP-Datei
 | `SixelImage`, `SixelColor` | RGBA8888-Pixelpuffer (nicht vormultipliziertes Alpha) und Farbwert |
 | `SixelEncoder`, `SixelEncoderOptions` | Bild zu Sixel: `MaxColors`, `AlphaThreshold`, `EmitRasterAttributes`, `Dithering` |
 | `SixelDecoder`, `SixelDecoderOptions` | Sixel zu Bild: Größenlimits, Registerzahl, Hintergrundfarbe; `LooksLikeSixel` |
-| `BmpCodec`, `ImageScaler` | BMP lesen/schreiben, `Resize` / `Fit` / `FitSize` |
+| `BmpCodec`, `ImageScaler` | BMP lesen/schreiben, `Resize` / `Fit` / `FitSize` (Seitenverhältnis bleibt, so groß wie möglich) und `Stretch` / `StretchSize` (Grenzen voll genutzt, Seitenverhältnis ignoriert) |
 | `SixelTerminal`, `SixelTerminalInfo` | DA1- und Pixelgrößen-Abfrage |
 | `SkiaImageCodec` (`SharpSixel.Skia`) | PNG/JPEG/... umwandeln und `SKBitmap`-Interop |
 | `SixelException` | Ungültige Daten oder überschrittene Limits |

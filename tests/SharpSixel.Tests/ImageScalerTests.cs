@@ -56,8 +56,80 @@ public class ImageScalerTests
     {
         SixelImage image = Solid(10, 10, SixelColor.Black);
 
-        Assert.Same(image, ImageScaler.Fit(image, 100, 100));
+        Assert.Same(image, ImageScaler.Fit(image, 100, 100, allowUpscale: false));
         Assert.Same(image, ImageScaler.Fit(image, null, null));
+        Assert.Same(image, ImageScaler.Fit(image, 10, 10));
+    }
+
+    [Fact]
+    public void Fit_SmallImage_IsEnlargedAsLargeAsPossibleKeepingAspectRatio()
+    {
+        SixelImage scaled = ImageScaler.Fit(Solid(40, 20, new SixelColor(9, 8, 7)), 200, 150);
+
+        Assert.Equal(200, scaled.Width);
+        Assert.Equal(100, scaled.Height);
+        Assert.Equal(new SixelColor(9, 8, 7), scaled.GetPixel(100, 50));
+    }
+
+    [Theory]
+    [InlineData(400, 200, 800, 300, 600, 300)]
+    [InlineData(300, 200, 1920, 1080, 1620, 1080)]
+    [InlineData(200, 400, 300, 800, 300, 600)]
+    [InlineData(100, 100, 50, 80, 50, 50)]
+    public void FitSize_Upscale_FillsLimitingDirectionAndKeepsAspectRatio(
+        int sourceW, int sourceH, int maxW, int maxH, int expectedW, int expectedH)
+    {
+        ImageScaler.FitSize(sourceW, sourceH, maxW, maxH, true, out int width, out int height);
+
+        Assert.Equal(expectedW, width);
+        Assert.Equal(expectedH, height);
+        Assert.True(width == maxW || height == maxH);
+    }
+
+    [Theory]
+    [InlineData(40, 20, 100, 100, true, 100, 100)]
+    [InlineData(40, 20, 100, null, true, 100, 20)]
+    [InlineData(40, 20, null, 100, true, 40, 100)]
+    [InlineData(40, 20, null, null, true, 40, 20)]
+    [InlineData(40, 20, 100, 100, false, 40, 20)]
+    [InlineData(40, 20, 10, 100, false, 10, 20)]
+    [InlineData(40, 20, 10, 5, false, 10, 5)]
+    public void StretchSize_UsesLimitsIgnoringAspectRatio(
+        int sourceW, int sourceH, int? maxW, int? maxH, bool upscale, int expectedW, int expectedH)
+    {
+        ImageScaler.StretchSize(sourceW, sourceH, maxW, maxH, upscale, out int width, out int height);
+
+        Assert.Equal(expectedW, width);
+        Assert.Equal(expectedH, height);
+    }
+
+    [Fact]
+    public void Stretch_ScalesToExactLimits()
+    {
+        SixelImage stretched = ImageScaler.Stretch(Solid(40, 20, new SixelColor(1, 2, 3)), 100, 100);
+
+        Assert.Equal(100, stretched.Width);
+        Assert.Equal(100, stretched.Height);
+        Assert.Equal(new SixelColor(1, 2, 3), stretched.GetPixel(50, 50));
+    }
+
+    [Fact]
+    public void Stretch_NothingToChange_ReturnsSameInstance()
+    {
+        SixelImage image = Solid(10, 10, SixelColor.Black);
+
+        Assert.Same(image, ImageScaler.Stretch(image, null, null));
+        Assert.Same(image, ImageScaler.Stretch(image, 10, 10));
+        Assert.Same(image, ImageScaler.Stretch(image, 100, 100, allowUpscale: false));
+    }
+
+    [Fact]
+    public void StretchSize_InvalidArguments_Throw()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => ImageScaler.StretchSize(0, 1, null, null, true, out _, out _));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ImageScaler.StretchSize(1, 1, 0, null, true, out _, out _));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ImageScaler.StretchSize(1, 1, null, -3, true, out _, out _));
+        Assert.Throws<ArgumentNullException>(() => ImageScaler.Stretch(null!, 1, 1));
     }
 
     [Fact]

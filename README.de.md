@@ -2,7 +2,7 @@
 
 [English](README.md) | Deutsch
 
-**Sixel-Grafiken für .NET: eine abhängigkeitsfreie Encoder-/Decoder-Bibliothek, PNG/JPEG-Unterstützung über SkiaSharp und ein Kommandozeilenprogramm, das Bilder direkt im Terminal anzeigt.**
+**Sixel-Grafiken für .NET: eine abhängigkeitsfreie Encoder-/Decoder-Bibliothek, PNG/JPEG-Unterstützung über SkiaSharp, ein Kommandozeilenprogramm, das Bilder direkt im Terminal anzeigt, Terminal-Widgets als Sixel-Grafik und Terminalsteuerung per OSC.**
 
 [![.NET build](https://github.com/feuster/SharpSixel/actions/workflows/dotnet.yml/badge.svg?branch=master)](https://github.com/feuster/SharpSixel/actions/workflows/dotnet.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -33,9 +33,12 @@ $ SharpSixel encode foto.jpg --show --fit
 ## Inhalt
 
 - [Funktionen](#funktionen)
+- [Überblick](#überblick)
 - [Schnellstart](#schnellstart)
 - [Kommandozeile](#kommandozeile)
 - [Bibliothek](#bibliothek)
+- [Widgets](#widgets)
+- [Terminalsteuerung (OSC)](#terminalsteuerung-osc)
 - [Terminal-Unterstützung](#terminal-unterstützung)
 - [Build, Tests, Publish](#build-tests-publish)
 - [Projektstruktur](#projektstruktur)
@@ -69,6 +72,49 @@ $ SharpSixel encode foto.jpg --show --fit
 - `encode`, `decode`, `check`; Bilder im Terminal anzeigen (`--show`), ans Fenster anpassen (`--fit`)
 - Einzelne, eigenständige Windows-Exe, keine .NET-Installation nötig
 
+**Widgets (`SharpSixel.Ui`, Demo: `SharpSixelUI.exe`)**
+- Terminal-Widgets als Sixel-Grafik mit automatischem ASCII-Fallback: `ProgressBar`, `Spinner`, `StatusDisplay`, `BarChart`, `Table`, `Button`, `Panel`, `Clock`, `DateDisplay`, `Tree`, `ImageView`
+- Interaktive Prompts mit Validierung: `Dialog`, `SelectionPrompt`, `MultiSelectionPrompt`, `TextPrompt`, `OpenFileDialog`, `SaveFileDialog`; Mausunterstützung
+- Anpassbare Stile und Farben, Neuzeichnen an Ort und Stelle mit `LiveRegion`
+
+**Terminalsteuerung (`SharpSixel.Osc`)**
+- Fenstertitel, Vorder-, Hintergrund- und Cursorfarbe, Cursorstil und Zurücksetzen auf die Terminal-Standardwerte über OSC- und Cursorstil-Sequenzen
+
+## Überblick
+
+Pfeile zeigen von einem Projekt auf die Projekte, die es verwendet.
+
+```mermaid
+flowchart TB
+    subgraph APPS["Anwendungen (win-x64, einzelne Datei)"]
+        CLI["SharpSixel.exe<br/>encode · decode · check"]
+        UICLI["SharpSixelUI.exe<br/>Widget-Demos · Prompts · osc"]
+    end
+
+    subgraph LIBS["Bibliotheken (NuGet)"]
+        UI["SharpSixel.Ui<br/>Widgets · Prompts · LiveRegion · Maus"]
+        OSC["SharpSixel.Osc<br/>TerminalControl: Titel · Farben · Cursorstil"]
+        SKIA["SharpSixel.Skia<br/>PNG / JPEG ↔ SixelImage"]
+        CORE["SharpSixel (Kern, keine Abhängigkeiten)<br/>SixelEncoder · SixelDecoder · SixelImage<br/>BmpCodec · ImageScaler · SixelTerminal"]
+    end
+
+    EXT["SkiaSharp (MIT)"]
+    TERM["Terminal<br/>Sixel · OSC · VT / Maus"]
+
+    CLI --> CORE
+    CLI --> SKIA
+    UICLI --> UI
+    UICLI --> OSC
+    UICLI --> CORE
+    UI --> CORE
+    OSC --> CORE
+    SKIA --> CORE
+    SKIA --> EXT
+    CORE -- "Sixel-Daten, DA1-Abfrage" --> TERM
+    UI -- "Sixel-Grafik oder ASCII, VT" --> TERM
+    OSC -- "OSC, DECSCUSR" --> TERM
+```
+
 ## Schnellstart
 
 Repository klonen und die eigenständige Exe, die NuGet-Pakete und die Anleitungen nach `publish/` bauen
@@ -89,6 +135,9 @@ cd publish
 .\SharpSixel.exe encode foto.png --width 800 --colors 64 --dither bayer -o foto.six
 .\SharpSixel.exe encode foto.six --show             # gespeicherte Sixel-Datei anzeigen
 .\SharpSixel.exe decode foto.six -o foto.png        # Sixel zurück in PNG
+.\SharpSixelUI.exe demo                             # alle Widgets nacheinander
+.\SharpSixelUI.exe progress --caption Upload --fill "#E67E22"
+.\SharpSixelUI.exe osc                              # Titel, Farben und Cursorstil des Terminals
 ```
 
 ## Kommandozeile
@@ -156,8 +205,99 @@ Ohne Skia decken `BmpCodec.Decode(bytes)` und `BmpCodec.Encode(image)` BMP-Datei
 | `SkiaImageCodec` (`SharpSixel.Skia`) | PNG/JPEG/... umwandeln und `SKBitmap`-Interop |
 | `SixelException` | Ungültige Daten oder überschrittene Limits |
 
-Die Pakete werden lokal mit `./publish.ps1` nach `publish/nuget/` gebaut und sind noch nicht auf nuget.org
+Die vier Pakete (`SharpSixel`, `SharpSixel.Skia`, `SharpSixel.Ui`, `SharpSixel.Osc`) werden lokal mit
+`./publish.ps1` nach `publish/nuget/` gebaut und sind noch nicht auf nuget.org
 veröffentlicht. Zum Verwenden diesen Ordner als lokale NuGet-Quelle eintragen.
+
+## Widgets
+
+`SharpSixel.Ui` zeichnet Terminal-Widgets als Sixel-Grafik. Unterstützt das Terminal kein Sixel oder ist die Ausgabe
+umgeleitet, wird das Widget stattdessen aus ASCII-Zeichen aufgebaut. Stile und Farben sind anpassbar. Beschriftungen
+und Wert-Texte sind normaler Terminaltext neben der Grafik. Das Paket hat die Zielplattformen `netstandard2.0` und
+`net10.0` und hängt nur von `SharpSixel` ab.
+
+| Widget | Zweck |
+|---|---|
+| `ProgressBar`, `Spinner` | Fortschritt mit optionaler Beschriftung und Prozent- oder Wertanzeige; animierter Spinner |
+| `StatusDisplay` | Spinner mit änderbarem Statustext für Arbeit unbekannter Dauer; Meldungen scrollen darüber |
+| `BarChart` | Horizontales Balkendiagramm: Beschriftung, Balken, Wert |
+| `Table` | Spaltenköpfe und ausgerichtete Textzellen im Raster, optional Streifen |
+| `Button` | Beschriftung mit Zustand: normal, fokussiert, gedrückt, deaktiviert |
+| `Panel` | Rahmen um Textzeilen mit optionalem Titel |
+| `Clock`, `DateDisplay` | Analoguhr mit digitaler Zeit; Kalenderblatt mit Datumstext |
+| `Tree` | Hierarchische Liste mit Führungslinien und einklappbaren Knoten |
+| `ImageView` | Bild, eingepasst in eine View fester Größe, optional mit Rahmen und eigenem Hintergrund |
+| Prompts | `Dialog`, `SelectionPrompt<T>`, `MultiSelectionPrompt<T>`, `TextPrompt` mit Validierung, `OpenFileDialog` / `SaveFileDialog` |
+
+`LiveRegion` zeichnet ein Widget an Ort und Stelle neu. Prompts, Dateidialoge und `Button` lassen sich per Maus
+anklicken (`ShowWithMouse`, `LiveRegion.EnableMouse`, `VtInputParser`).
+
+```csharp
+using SharpSixel;
+using SharpSixel.Ui;
+
+SixelTerminalInfo? info = SixelTerminal.Query(Console.Out, readChar);   // readChar: Eingabefunktion, siehe Anleitung
+var env = WidgetEnvironment.Create(RenderMode.Auto, info);               // Sixel, wenn unterstützt, sonst ASCII
+
+var bar = new ProgressBar { Caption = "Download" };
+bar.Style.FillColor = new SixelColor(230, 126, 34);
+
+using (var region = new LiveRegion(Console.Out, env))
+{
+    region.Begin(bar.GetRows(env));
+    for (int i = 0; i <= 100; i++)
+    {
+        bar.Value = i;
+        region.Update(bar);
+        Thread.Sleep(30);
+    }
+}
+
+var fruit = new SelectionPrompt<string> { Title = "Lieblingsobst?" };
+fruit.AddChoices(new[] { "Äpfel", "Birnen", "Pflaumen" });
+string choice = fruit.Show(Console.Out, env);           // validierte Antwort
+```
+
+Das Demo-Programm `SharpSixelUI.exe` zeigt jedes Widget:
+
+```
+SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|image|prompts|open|save|osc|demo> [Optionen]
+```
+
+Gemeinsame Optionen: `--mode auto|sixel|ascii`, `--caption <Text>`, `--duration <Sekunden>`, `--rows <n>`, `--no-mouse` und
+Farben als `"#RRGGBB"` (in PowerShell in Anführungszeichen setzen). `prompts`, `open` und `save` sind interaktiv und
+brauchen ein Terminal. Die vollständige Referenz (alle Widgets, Optionen, Typen) steht in
+[`docs/README.Ui.txt`](docs/README.Ui.txt).
+
+## Terminalsteuerung (OSC)
+
+`SharpSixel.Osc` verändert das Aussehen des Terminals mit Operating System Commands (OSC) und Cursorstil-Sequenzen. Es
+hängt nur von `SharpSixel` ab (wegen `SixelColor`). Alle Methoden sind statische Member von `TerminalControl`; jede
+nimmt optional einen `TextWriter` (Standard `Console.Out`).
+
+```csharp
+using SharpSixel;
+using SharpSixel.Osc;
+
+TerminalControl.SetTitle("Mein Tool");                            // Steuerzeichen werden entfernt
+TerminalControl.SetForegroundColor("#FFD700");                    // #RGB oder #RRGGBB, sonst ArgumentException
+TerminalControl.SetBackgroundColor(new SixelColor(16, 32, 64));   // Alpha wird ignoriert
+TerminalControl.SetCursorColor("#FF4040");
+TerminalControl.SetCursorStyle(CursorStyle.BarBlinking);
+TerminalControl.Reset();                                          // Farben und Cursorstil auf Standard, Titel unter Windows wiederhergestellt
+```
+
+| Methode | Sequenz |
+|---|---|
+| `SetTitle` / `ResetTitle` | OSC 0; `ResetTitle` stellt den früheren Titel wieder her (nur Windows, andere Plattformen können ihn nicht lesen) |
+| `SetForegroundColor` / `ResetForegroundColor` | OSC 10 / 110 |
+| `SetBackgroundColor` / `ResetBackgroundColor` | OSC 11 / 111 |
+| `SetCursorColor` / `ResetCursorColor` | OSC 12 / 112 |
+| `SetCursorStyle(CursorStyle)` | `CSI Ps SP q` (DECSCUSR): `Default`, `BoxBlinking`, `BoxStatic`, `UnderscoreBlinking`, `UnderscoreStatic`, `BarBlinking`, `BarStatic` |
+| `Reset` | Titel, die drei Farben und der Cursorstil |
+
+Das Terminal muss VT-Sequenzen verarbeiten (unter Windows aktivieren); Terminals ignorieren Sequenzen, die sie nicht
+unterstützen. Die Demo ist `SharpSixelUI osc`.
 
 ## Terminal-Unterstützung
 
@@ -169,8 +309,8 @@ kein Sixel an.
 ## Build, Tests, Publish
 
 ```powershell
-dotnet test                      # 247 Tests
-./publish.ps1                    # SharpSixel.exe + Anleitungen + NuGet-Pakete in publish/
+dotnet test                      # Unit-Tests
+./publish.ps1                    # SharpSixel.exe, SharpSixelUI.exe, Anleitungen und NuGet-Pakete in publish/
 ./publish.ps1 -Version 0.2.0     # optionale Version für Exe und Pakete
 ```
 
@@ -178,8 +318,9 @@ Pack und Publish gibt es nur als Release-Build; ein Aufruf mit `-c Debug` wird a
 
 ```
 SharpSixel.exe              einzelne, eigenständige Datei, win-x64 (ca. 41 MB, komprimiert)
-README.txt, README.en.txt   Anleitungen (Deutsch, Englisch)
-nuget/                      Pakete SharpSixel und SharpSixel.Skia
+SharpSixelUI.exe            Widget-Demo, einzelne, eigenständige Datei, win-x64
+README*.txt                 Anleitungen (Deutsch, Englisch; SharpSixel und SharpSixelUI)
+nuget/                      Pakete SharpSixel, SharpSixel.Skia, SharpSixel.Ui und SharpSixel.Osc
 ```
 
 Jeder Push und jeder Pull Request auf `master` wird von GitHub Actions gebaut und getestet
@@ -190,7 +331,10 @@ Jeder Push und jeder Pull Request auf `master` wird von GitHub Actions gebaut un
 ```
 src/SharpSixel/         Kernbibliothek (keine Abhängigkeiten)
 src/SharpSixel.Skia/    SkiaSharp-Adapter (PNG/JPEG)
-src/SharpSixel.Cli/     Kommandozeilenprogramm
+src/SharpSixel.Ui/      Terminal-Widgets (Sixel mit ASCII-Fallback)
+src/SharpSixel.Osc/     Terminalsteuerung (OSC, Cursorstil)
+src/SharpSixel.Cli/     Kommandozeilenprogramm (SharpSixel.exe)
+src/SharpSixel.Cli.Ui/  Widget-Demo (SharpSixelUI.exe)
 tests/SharpSixel.Tests/ xUnit-Tests
 docs/                   Anleitungen und Sixel-Notizen
 publish.ps1             Publish und Pack in einem Lauf
@@ -200,6 +344,8 @@ publish.ps1             Publish und Pack in einem Lauf
 
 - [`docs/README.txt`](docs/README.txt): Benutzeranleitung (Deutsch)
 - [`docs/README.en.txt`](docs/README.en.txt): user manual (English)
+- [`docs/README.Ui.txt`](docs/README.Ui.txt): Anleitung für SharpSixelUI, SharpSixel.Ui und SharpSixel.Osc (Deutsch)
+- [`docs/README.Ui.en.txt`](docs/README.Ui.en.txt): manual for SharpSixelUI, SharpSixel.Ui and SharpSixel.Osc (English)
 - [`docs/all-about-sixels.txt`](docs/all-about-sixels.txt): Notizen zum Sixel-Format, als Ausgangspunkt verwendet
 
 ## Grenzen und Status
@@ -212,7 +358,8 @@ publish.ps1             Publish und Pack in einem Lauf
 - Unter Windows verifiziert (Windows Terminal). Der Unix-Pfad für `check`, `--fit` und `--show` (Raw-Modus über
   `stty`) ist implementiert, aber noch nicht unter Linux oder macOS getestet. Unter Linux braucht die CLI zusätzlich
   `SkiaSharp.NativeAssets.Linux`.
-- Veröffentlicht wird nur die Windows-Exe; andere Plattformen bauen aus dem Quellcode.
+- Veröffentlicht werden nur die Windows-Exes; andere Plattformen bauen aus dem Quellcode.
+- Widgets, Prompts, Mauseingabe und OSC-Befehle sind nur im Windows Terminal verifiziert. Die Widgets gehen von einem Zeichen je Terminalzelle aus.
 
 ## Spezifikationen
 

@@ -17,6 +17,22 @@ internal static class ConsoleTerminal
     public static bool DetectSixel() =>
         Probe(false, readChar => SixelTerminal.Detect(Console.Out, readChar));
 
+    /// <summary>Queries sixel support and pixel geometry in one round trip; null if no terminal is attached or it does not answer.</summary>
+    public static SixelTerminalInfo? QueryInfo() =>
+        Probe<SixelTerminalInfo?>(null, readChar => SixelTerminal.Query(Console.Out, readChar));
+
+    /// <summary>Puts the console in raw mode with VT sequences enabled (no echo) until the result is disposed.</summary>
+    public static IDisposable EnterTerminalMode() => RawMode.Enter();
+
+    /// <summary>
+    /// Puts the console in raw mode for reading VT input from the standard input stream (keys and mouse reports as characters):
+    /// no echo, no line editing, Ctrl+C arrives as the character 0x03 instead of a signal, quick edit off (Windows).
+    /// </summary>
+    public static IDisposable EnterMouseInput() => RawMode.EnterInput();
+
+    /// <summary>Enables VT sequences for output only (Windows) and leaves keyboard input untouched, so <c>Console.ReadKey</c> keeps working.</summary>
+    public static IDisposable EnterVtOutput() => RawMode.EnterOutputOnly();
+
     /// <summary>
     /// Determines the drawable area in pixels (text area minus one row for the prompt). Uses the pixel size reported by
     /// the terminal, else cell size times console cells, else an assumed cell size. Null if no terminal is attached.
@@ -113,6 +129,9 @@ internal static class ConsoleTerminal
         private const int StdInputHandle = -10;
         private const int StdOutputHandle = -11;
         private const uint EnableLineInput = 0x0002;
+        private const uint EnableProcessedInput = 0x0001;
+        private const uint EnableQuickEdit = 0x0040;
+        private const uint EnableExtendedFlags = 0x0080;
         private const uint EnableEchoInput = 0x0004;
         private const uint EnableVirtualTerminalProcessing = 0x0004;
         private const uint EnableVirtualTerminalInput = 0x0200;
@@ -126,6 +145,12 @@ internal static class ConsoleTerminal
 
         public static RawMode Enter() =>
             new RawMode(OperatingSystem.IsWindows() ? EnterWindows() : EnterUnix());
+
+        public static RawMode EnterOutputOnly() =>
+            new RawMode(OperatingSystem.IsWindows() ? EnterWindowsOutput() : null);
+
+        public static RawMode EnterInput() =>
+            new RawMode(OperatingSystem.IsWindows() ? EnterWindowsInput() : EnterUnix("-icanon -echo -isig"));
 
         public void Dispose() => _restore?.Invoke();
 
@@ -147,10 +172,41 @@ internal static class ConsoleTerminal
             };
         }
 
-        private static Action? EnterUnix()
+        private static Action? EnterWindowsInput()
+        {
+            nint input = GetStdHandle(StdInputHandle);
+            nint output = GetStdHandle(StdOutputHandle);
+            if (!GetConsoleMode(input, out uint inputMode) || !GetConsoleMode(output, out uint outputMode))
+            {
+                return null;
+            }
+
+            uint rawInput = inputMode & ~(EnableLineInput | EnableEchoInput | EnableProcessedInput | EnableQuickEdit);
+            SetConsoleMode(input, rawInput | EnableVirtualTerminalInput | EnableExtendedFlags);
+            SetConsoleMode(output, outputMode | EnableVirtualTerminalProcessing);
+            return () =>
+            {
+                SetConsoleMode(input, inputMode);
+                SetConsoleMode(output, outputMode);
+            };
+        }
+
+        private static Action? EnterWindowsOutput()
+        {
+            nint output = GetStdHandle(StdOutputHandle);
+            if (!GetConsoleMode(output, out uint outputMode))
+            {
+                return null;
+            }
+
+            SetConsoleMode(output, outputMode | EnableVirtualTerminalProcessing);
+            return () => SetConsoleMode(output, outputMode);
+        }
+
+        private static Action? EnterUnix(string settings = "-icanon -echo")
         {
             string? saved = RunStty("-g", captureOutput: true)?.Trim();
-            if (string.IsNullOrEmpty(saved) || RunStty("-icanon -echo", captureOutput: false) == null)
+            if (string.IsNullOrEmpty(saved) || RunStty(settings, captureOutput: false) == null)
             {
                 return null;
             }

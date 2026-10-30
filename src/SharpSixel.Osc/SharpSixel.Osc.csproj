@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+    <RootNamespace>SharpSixel.Osc</RootNamespace>
+    <AssemblyName>SharpSixel.Osc</AssemblyName>
+    <PackageId>SharpSixel.Osc</PackageId>
+    <Description>Terminal control through Operating System Commands (OSC) and cursor style sequences: window title, foreground, background and cursor color, cursor style, and reset to the terminal defaults. Colors are given as SixelColor or #RRGGBB text.</Description>
+    <PackageTags>terminal;osc;ansi;vt;escape-sequences;title;cursor;color;console</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SharpSixel\SharpSixel.csproj" />
+  </ItemGroup>
+
+</Project>

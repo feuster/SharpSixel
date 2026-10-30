@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>SharpSixelUI</RootNamespace>
+    <AssemblyName>SharpSixelUI</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SharpSixelUI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Terminal probing (raw mode, DA1/size query) is shared with SharpSixel.Cli instead of duplicated. -->
+    <Compile Include="..\SharpSixel.Cli\ConsoleTerminal.cs" Link="Shared\ConsoleTerminal.cs" />
+    <Compile Include="..\SharpSixel.Cli\CliEnvironment.cs" Link="Shared\CliEnvironment.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SharpSixel\SharpSixel.csproj" />
+    <ProjectReference Include="..\SharpSixel.Ui\SharpSixel.Ui.csproj" />
+    <ProjectReference Include="..\SharpSixel.Osc\SharpSixel.Osc.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -2,7 +2,7 @@
  SharpSixel  -  Encode and decode sixel graphics
 ================================================================================
 
- Version : 1.0.0  (current version of the program: SharpSixel --version)
+ Version : 1.1.0  (current version of the program: SharpSixel --version)
  Author  : Alexander Feuster
  License : MIT
  Deutsche Version: README.txt
@@ -57,10 +57,14 @@ SharpSixel consists of:
 After publishing (./publish.ps1) the folder "publish" contains:
 
   SharpSixel.exe          the program (a single file)
+  SharpSixelUI.exe        demo of the terminal widgets (progress bar, spinner, status, bar chart, table, button, panel, clock, date, tree, image, prompts, file dialogs)
   README.txt              user manual (German)
   README.en.txt           this manual (English)
+  README.Ui.txt           manual SharpSixelUI / SharpSixel.Ui (German)
+  README.Ui.en.txt        manual SharpSixelUI / SharpSixel.Ui (English)
   nuget\SharpSixel.<version>.nupkg
   nuget\SharpSixel.Skia.<version>.nupkg
+  nuget\SharpSixel.Ui.<version>.nupkg
 
 
 3. REQUIREMENTS

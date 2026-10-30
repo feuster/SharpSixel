@@ -484,3 +484,7 @@ $RECYCLE.BIN/
 artifacts/
 
 publish/
+
+
+# local
+tools/**

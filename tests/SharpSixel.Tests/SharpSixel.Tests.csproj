@@ -17,6 +17,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\SharpSixel\SharpSixel.csproj" />
     <ProjectReference Include="..\..\src\SharpSixel.Skia\SharpSixel.Skia.csproj" />
+    <ProjectReference Include="..\..\src\SharpSixel.Ui\SharpSixel.Ui.csproj" />
+    <ProjectReference Include="..\..\src\SharpSixel.Osc\SharpSixel.Osc.csproj" />
     <ProjectReference Include="..\..\src\SharpSixel.Cli\SharpSixel.Cli.csproj" />
   </ItemGroup>
 

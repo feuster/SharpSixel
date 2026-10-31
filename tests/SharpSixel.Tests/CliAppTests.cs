@@ -398,6 +398,67 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(6, written.Height);
     }
 
+    [Theory]
+    [InlineData(null, "png")]
+    [InlineData("bmp", "bmp")]
+    [InlineData("png", "png")]
+    [InlineData("jpeg", "jpg")]
+    public void Decode_ToStdout_WritesImageInRequestedFormat(string? format, string expected)
+    {
+        _outputIsTerminal = false;
+        byte[] sixel = new SixelEncoder().EncodeToBytes(RedImage());
+        string[] args = format == null
+            ? new[] { "decode", "-", "-o", "-" }
+            : new[] { "decode", "-", "-o", "-", "--format", format };
+
+        Result result = Run(sixel, args);
+
+        Assert.Equal(0, result.ExitCode);
+        SixelImage written = expected == "bmp" ? BmpCodec.Decode(result.Stdout) : SkiaImageCodec.Decode(result.Stdout);
+        Assert.Equal(4, written.Width);
+        Assert.Equal(6, written.Height);
+    }
+
+    [Fact]
+    public void Decode_ToStdoutOnTerminal_ReturnsExitCode1()
+    {
+        _outputIsTerminal = true;
+        byte[] sixel = new SixelEncoder().EncodeToBytes(RedImage());
+
+        Result result = Run(sixel, "decode", "-", "-o", "-");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Empty(result.Stdout);
+    }
+
+    [Fact]
+    public void Decode_FormatOverridesExtension()
+    {
+        byte[] sixel = new SixelEncoder().EncodeToBytes(RedImage());
+        string output = PathOf("out.dat");
+
+        Result result = Run(sixel, "decode", "-", "-o", output, "--format", "bmp");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(RedImage().Pixels, BmpCodec.Decode(File.ReadAllBytes(output)).Pixels);
+    }
+
+    [Fact]
+    public void Decode_UnknownFormat_ReturnsExitCode2()
+    {
+        Result result = Run(null, "decode", "-", "-o", "-", "--format", "gif");
+
+        Assert.Equal(2, result.ExitCode);
+    }
+
+    [Fact]
+    public void Encode_WithFormat_ReturnsExitCode2()
+    {
+        Result result = Run(null, "encode", WriteBmp("in.bmp"), "--format", "png");
+
+        Assert.Equal(2, result.ExitCode);
+    }
+
     [Fact]
     public void Decode_BmpOutput_IsLossless()
     {

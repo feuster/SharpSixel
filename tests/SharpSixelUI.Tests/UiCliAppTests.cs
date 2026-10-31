@@ -46,7 +46,8 @@ public class UiCliAppTests
             },
             _ => run.Delays++,
             () => ++checks > cancelAfterChecks,
-            now: () => FixedNow);
+            now: () => FixedNow,
+            culture: System.Globalization.CultureInfo.GetCultureInfo("en-US"));
         run.Code = UiCliApp.Run(args, env);
         run.Output = output.ToString();
         run.Error = error.ToString();
@@ -362,7 +363,7 @@ public class UiCliAppTests
         Run run = Execute(new[] { "date" }, false, SixelInfo);
         Assert.Equal(0, run.Code);
         Assert.Equal(0, run.Delays);
-        Assert.Equal("Wed, 28 Oct 2026" + Environment.NewLine, run.Output);
+        Assert.Equal("Wed, 10/28/2026" + Environment.NewLine, run.Output);
     }
 
     [Fact]
@@ -371,7 +372,7 @@ public class UiCliAppTests
         Run run = Execute(new[] { "date", "--mode", "ascii", "--no-ansi", "--caption", "Today" }, true);
         Assert.Equal(0, run.Code);
         Assert.Equal(0, run.Delays);
-        Assert.Contains("Today Wed, 28 Oct 2026", run.Output);
+        Assert.Contains("Today Wed, 10/28/2026", run.Output);
         Assert.EndsWith("\u001b[?25h", run.Output);
         Assert.Contains("\u001bP", Execute(new[] { "date" }, true, SixelInfo).Output);
     }
@@ -390,7 +391,7 @@ public class UiCliAppTests
         Run run = Execute(new[] { "demo", "--mode", "ascii", "--duration", "1", "--no-ansi" }, true);
         Assert.Equal(0, run.Code);
         Assert.Contains("14:05:09", run.Output);
-        Assert.Contains("Wed, 28 Oct 2026", run.Output);
+        Assert.Contains("Wed, 10/28/2026", run.Output);
     }
 
     [Fact]

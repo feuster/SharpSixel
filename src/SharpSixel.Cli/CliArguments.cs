@@ -38,6 +38,9 @@ internal sealed class CliArguments
 
     public bool Show { get; private set; }
 
+    /// <summary>Output image format for decode (bmp, png, jpg); null = derive from the output file extension.</summary>
+    public string? Format { get; private set; }
+
     public bool ColorsSpecified { get; private set; }
 
     public bool DitherSpecified { get; private set; }
@@ -93,6 +96,9 @@ internal sealed class CliArguments
                     break;
                 case "--show":
                     result.Show = true;
+                    break;
+                case "--format":
+                    result.Format = ParseFormat(RequireValue(args, ref i, arg));
                     break;
                 case "--colors":
                     result.Colors = ParseColors(RequireValue(args, ref i, arg));
@@ -180,6 +186,22 @@ internal sealed class CliArguments
             default:
                 mode = SixelDithering.None;
                 return false;
+        }
+    }
+
+    private static string ParseFormat(string value)
+    {
+        switch (value.ToLowerInvariant())
+        {
+            case "bmp":
+                return "bmp";
+            case "png":
+                return "png";
+            case "jpg":
+            case "jpeg":
+                return "jpg";
+            default:
+                throw new UsageException("--format must be bmp, png or jpg");
         }
     }
 

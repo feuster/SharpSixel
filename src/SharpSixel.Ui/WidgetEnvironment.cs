@@ -16,12 +16,14 @@ public sealed class WidgetEnvironment
     /// <param name="cellWidth">Character cell width in pixels.</param>
     /// <param name="cellHeight">Character cell height in pixels.</param>
     /// <param name="useAnsi">True if ANSI sequences (colors, erase) may be used in ASCII frames.</param>
-    public WidgetEnvironment(bool useSixel, int cellWidth = DefaultCellWidth, int cellHeight = DefaultCellHeight, bool useAnsi = true)
+    /// <param name="columns">Width of the terminal in character cells; 0 = unknown (widgets are not limited).</param>
+    public WidgetEnvironment(bool useSixel, int cellWidth = DefaultCellWidth, int cellHeight = DefaultCellHeight, bool useAnsi = true, int columns = 0)
     {
         UseSixel = useSixel;
         CellWidth = Guard.AtLeast(cellWidth, 1, nameof(cellWidth));
         CellHeight = Guard.AtLeast(cellHeight, 1, nameof(cellHeight));
         UseAnsi = useAnsi;
+        Columns = Guard.AtLeast(columns, 0, nameof(columns));
     }
 
     /// <summary>True if widgets are drawn as sixel graphics.</summary>
@@ -37,6 +39,12 @@ public sealed class WidgetEnvironment
     public bool UseAnsi { get; }
 
     /// <summary>
+    /// Width of the terminal in character cells, or 0 if unknown. Widgets with a flexible width (table, panel, tree,
+    /// bar chart, progress bar) shrink to fit; 0 means no limit.
+    /// </summary>
+    public int Columns { get; }
+
+    /// <summary>
     /// Pixel height of a sixel graphic spanning <paramref name="rows"/> rows: the largest multiple of 6 that fits,
     /// because sixel data is built in bands of 6 pixels and a partial band would spill into an extra row.
     /// </summary>
@@ -46,7 +54,8 @@ public sealed class WidgetEnvironment
     /// <param name="mode">Requested mode; <see cref="RenderMode.Auto"/> follows <paramref name="terminal"/>.</param>
     /// <param name="terminal">Result of <see cref="SixelTerminal.Query"/>, or null if unknown (then ASCII in Auto mode).</param>
     /// <param name="useAnsi">True if ANSI sequences may be used in ASCII frames.</param>
-    public static WidgetEnvironment Create(RenderMode mode, SixelTerminalInfo? terminal, bool useAnsi = true)
+    /// <param name="columns">Terminal width in cells; 0 derives it from the text area and cell size in <paramref name="terminal"/> (unknown if not reported).</param>
+    public static WidgetEnvironment Create(RenderMode mode, SixelTerminalInfo? terminal, bool useAnsi = true, int columns = 0)
     {
         bool useSixel;
         switch (mode)
@@ -65,10 +74,15 @@ public sealed class WidgetEnvironment
         }
 
         bool hasCell = terminal != null && terminal.HasCellSize;
+        if (columns <= 0 && hasCell && terminal!.HasTextAreaSize)
+        {
+            columns = terminal.TextAreaWidth / terminal.CellWidth;
+        }
         return new WidgetEnvironment(
             useSixel,
             hasCell ? terminal!.CellWidth : DefaultCellWidth,
             hasCell ? terminal!.CellHeight : DefaultCellHeight,
-            useAnsi);
+            useAnsi,
+            Math.Max(0, columns));
     }
 }

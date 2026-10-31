@@ -34,6 +34,19 @@ ConsoleKeyInfo ReadKey()
     }
 }
 
+// Terminal width in cells for widgets with a flexible width; 0 if unknown or output is redirected.
+int ConsoleColumns()
+{
+    try
+    {
+        return Console.IsOutputRedirected ? 0 : Console.WindowWidth;
+    }
+    catch (IOException)
+    {
+        return 0;
+    }
+}
+
 ConsoleInput? consoleInput = null;
 InputEvent ReadInput() => (consoleInput ??= new ConsoleInput()).Read();
 
@@ -50,4 +63,5 @@ return UiCliApp.Run(
         ReadKey,
         ConsoleTerminal.EnterVtOutput,
         ReadInput,
-        ConsoleTerminal.EnterMouseInput));
+        ConsoleTerminal.EnterMouseInput,
+        getColumns: ConsoleColumns));

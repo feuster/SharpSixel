@@ -67,15 +67,15 @@ public sealed class Table : Widget
     private int CaptionRows => string.IsNullOrEmpty(Caption) ? 0 : 1;
 
     /// <inheritdoc />
-    protected override int SixelRows => Math.Max(1, BuildLayout().Lines.Count);
+    protected override int SixelRows => Math.Max(1, BuildLayout(0).Lines.Count);
 
     /// <inheritdoc />
-    protected override int AsciiRows => Math.Max(1, BuildLayout().Lines.Count);
+    protected override int AsciiRows => Math.Max(1, BuildLayout(0).Lines.Count);
 
     /// <inheritdoc />
     protected override string RenderAscii(WidgetEnvironment environment)
     {
-        Layout layout = BuildLayout();
+        Layout layout = BuildLayout(environment.Columns);
         var lines = new List<string>();
         foreach (Line line in layout.Lines)
         {
@@ -100,7 +100,7 @@ public sealed class Table : Widget
     /// <inheritdoc />
     protected override string RenderSixel(WidgetEnvironment environment)
     {
-        Layout layout = BuildLayout();
+        Layout layout = BuildLayout(environment.Columns);
         int first = CaptionRows;
         int tableRows = layout.Lines.Count - first;
         var sb = new StringBuilder(AnsiCodes.SaveCursor);
@@ -143,7 +143,7 @@ public sealed class Table : Widget
 
     internal SixelImage CreateImage(WidgetEnvironment environment)
     {
-        Layout layout = BuildLayout();
+        Layout layout = BuildLayout(environment.Columns);
         int first = CaptionRows;
         int rows = Math.Max(1, layout.Lines.Count - first);
         int cellWidth = environment.CellWidth;
@@ -285,10 +285,51 @@ public sealed class Table : Widget
         return width;
     }
 
-    private Layout BuildLayout()
+    /// <summary>Column widths; if <paramref name="maxColumns"/> is positive the widest columns shrink until the table fits.</summary>
+    private int[] FitWidths(int count, bool border, int maxColumns)
+    {
+        var widths = new int[count];
+        int total = 0;
+        for (int i = 0; i < count; i++)
+        {
+            widths[i] = ContentWidth(i);
+            total += widths[i];
+        }
+
+        if (maxColumns <= 0 || count == 0)
+        {
+            return widths;
+        }
+
+        total += (border ? 2 : 0) + (count * 2 * Style.Padding) + (Style.ShowColumnSeparators ? count - 1 : 0);
+        while (total > maxColumns)
+        {
+            int widest = 0;
+            for (int i = 1; i < count; i++)
+            {
+                if (widths[i] > widths[widest])
+                {
+                    widest = i;
+                }
+            }
+
+            if (widths[widest] <= 1)
+            {
+                break;
+            }
+
+            widths[widest]--;
+            total--;
+        }
+
+        return widths;
+    }
+
+    private Layout BuildLayout(int maxColumns)
     {
         int count = _columns.Count;
         bool border = count > 0 && Style.ShowBorder;
+        int[] widths = FitWidths(count, border, maxColumns);
         var layout = new Layout { Widths = new int[count], Starts = new int[count] };
         var separators = new List<int>();
         int position = 0;
@@ -299,7 +340,7 @@ public sealed class Table : Widget
 
         for (int i = 0; i < count; i++)
         {
-            layout.Widths[i] = ContentWidth(i);
+            layout.Widths[i] = widths[i];
             layout.Starts[i] = position;
             position += layout.Widths[i] + (2 * Style.Padding);
             if (i < count - 1 && Style.ShowColumnSeparators)

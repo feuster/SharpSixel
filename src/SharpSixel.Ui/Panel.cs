@@ -73,7 +73,7 @@ public sealed class Panel : Widget
     /// <inheritdoc />
     protected override string RenderAscii(WidgetEnvironment environment)
     {
-        Layout layout = BuildLayout();
+        Layout layout = BuildLayout(environment.Columns);
         bool ansi = environment.UseAnsi;
         string vertical = Tint(Style.AsciiVertical.ToString(), Style.BorderColor, ansi);
         string padding = new string(' ', Style.Padding);
@@ -91,7 +91,7 @@ public sealed class Panel : Widget
     /// <inheritdoc />
     protected override string RenderSixel(WidgetEnvironment environment)
     {
-        Layout layout = BuildLayout();
+        Layout layout = BuildLayout(environment.Columns);
         var sb = new StringBuilder(AnsiCodes.SaveCursor);
         for (int row = 0; row < Rows; row++)
         {
@@ -121,7 +121,7 @@ public sealed class Panel : Widget
 
     internal SixelImage CreateImage(WidgetEnvironment environment)
     {
-        Layout layout = BuildLayout();
+        Layout layout = BuildLayout(environment.Columns);
         int cellWidth = environment.CellWidth;
         int width = layout.Total * cellWidth;
         int height = environment.GetImageHeight(Rows);
@@ -205,10 +205,14 @@ public sealed class Panel : Widget
         return width;
     }
 
-    private Layout BuildLayout()
+    private Layout BuildLayout(int maxColumns)
     {
         string title = PromptRow.Clean(Title);
         int content = _width ?? FitContentWidth(title);
+        if (maxColumns > 0)
+        {
+            content = Math.Min(content, Math.Max(0, maxColumns - 2 - (2 * Style.Padding)));
+        }
         int inner = content + (2 * Style.Padding);
         int titleSpace = inner - TitleMargin;
         return new Layout(content, inner, titleSpace > 0 ? Fit(title, titleSpace) : string.Empty);

@@ -143,7 +143,7 @@ cd publish
 ```
 SharpSixel encode <input> [-o <file>] [--show] [--colors <2-256>] [--dither [floyd|bayer|none]]
                   [--width <px>] [--height <px>] [--cols <n>] [--rows <n>] [--fit] [--upscale]
-SharpSixel decode <input> -o <file>      # .bmp, .png, .jpg
+SharpSixel decode <input> -o <file|-> [--format bmp|png|jpg]   # .bmp, .png, .jpg; -o - writes to stdout (default png)
 SharpSixel check                         # exit 0 if the terminal reports sixel support; shows a test image
 ```
 
@@ -158,6 +158,7 @@ SharpSixel check                         # exit 0 if the terminal reports sixel 
 | `--cols <n>`, `--rows <n>` | Like `--width`/`--height`, but in terminal character cells (needs a terminal; not combinable with the pixel option of the same axis) |
 | `--fit` | Fit into the terminal's drawable area (queried from the terminal) |
 | `--upscale` | Also enlarge small images up to the given limits |
+| `--format <fmt>` | `decode` only: `bmp`, `png` or `jpg`; overrides the extension and selects the format for `-o -` (stdout, must be redirected) |
 | `-h, --help`, `--version` | Help and version |
 
 A sixel file (header `ESC P ... q`) is accepted as input for `encode`: it is passed through byte for byte unless size,

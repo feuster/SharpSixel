@@ -14,7 +14,7 @@ GitHub-READMEs: `README.md` (englisch) und `README.de.md` (deutsch), inhaltlich 
 
 ## Befehle
 - Test: `dotnet test`
-- Alles in einem Lauf: `./publish.ps1 [-Version x.y.z]` → `publish/SharpSixel.exe` (win-x64, self-contained, Single-File, komprimiert), `publish/README.txt` + `publish/README.en.txt`, `publish/nuget/*.nupkg` (SharpSixel, SharpSixel.Skia). `publish/` ist gitignored.
+- Alles in einem Lauf: `./publish.ps1 [-Version x.y.z]` → `publish/SharpSixel.exe` (win-x64, self-contained, Single-File, komprimiert), `publish/README.txt` + `publish/README.en.txt`, `publish/nuget/*.nupkg` + `*.snupkg` (SharpSixel, SharpSixel.Skia, SharpSixel.Ui, SharpSixel.Osc; Icon `docs/images/icon.png`, SourceLink über das SDK). `publish/` ist gitignored.
 - Einzeln: `dotnet publish src/SharpSixel.Cli -c Release -p:PublishProfile=win-x64`; `dotnet pack src/SharpSixel -o publish/nuget`
 - **Nur Release**: `Directory.Build.targets` bricht Pack/Publish bei Debug ab; `PackRelease`/`PublishRelease` setzen Release als Default.
 - NuGet nur lokal, nie hochladen ohne Auftrag.
@@ -46,6 +46,8 @@ GitHub-READMEs: `README.md` (englisch) und `README.de.md` (deutsch), inhaltlich 
 - Fertig: Decoder, Encoder (+Dithering), BMP, Skia, CLI (encode/decode/check, Skalierung), lokale NuGets, Single-File-Publish, Benutzer-README. 247 Tests grün.
 - Windows real verifiziert (check inkl. Testbild, --fit, --show inkl. Sixel-Datei-Eingabe/Speichern, Publish-Exe). Unix-Pfad (`stty`) ungetestet.
 - Offen: Linux-Natives (`SkiaSharp.NativeAssets.Linux`) + Unix-Test (evtl. zusätzlicher Linux-CI-Job); Autor und Repo-URL sind gesetzt.
+- Version 1.4.0 (2026-10-31, committed): `WidgetEnvironment.Columns` (Terminalbreite; Table/Panel/Tree/BarChart/ProgressBar begrenzt), `decode -o -` + `--format`, NuGet-Icon/snupkg/SourceLink, Ui-Beschreibung; Tests grün (689 + 93). Offen: Test im echten Terminal (Spaltenbegrenzung), `./publish.ps1`-Lauf für 1.4.0.
+- ToDo Backlog aus Funktionsprüfung (nicht gewählt): Linux-CI-Job + `SkiaSharp.NativeAssets.Linux` + Unix-Test (`stty`); XTSMGRAPHICS-Abfrage (Farbregister/Geometrie), DECSDM/`?1070`; Prompts mit Suche/Filter, `TextPrompt<T>`, MultiSelect "Alle"; ProgressBar indeterminate/Multi-Task; LiveRegion-Resize; Zeichenbreite (CJK/Emoji); Osc: OSC 8/52/9;4/7, Titel-Restore außerhalb Windows (CSI 22/23 t); CLI: `AlphaThreshold`/`EmitRasterAttributes`/Decoder-Hintergrund als Optionen; PixelAspect wird nirgends angewandt.
 - Details/Messwerte/Historie → `CLAUDE-History.md`.
 
 # CLAUDE.md

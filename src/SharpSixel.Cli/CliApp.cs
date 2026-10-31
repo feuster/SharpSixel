@@ -12,13 +12,14 @@ internal static class CliApp
         Usage:
           SharpSixel encode <input> [-o <file>] [--show] [--colors <2-256>] [--dither [floyd|bayer|none]]
                        [--width <px>] [--height <px>] [--cols <n>] [--rows <n>] [--fit] [--upscale]
-          SharpSixel decode <input> -o <file>
+          SharpSixel decode <input> -o <file|->  [--format bmp|png|jpg]
           SharpSixel check
 
         <input>  file path, or '-' for standard input.
         encode   input: BMP, PNG, JPEG (and other Skia formats) or a sixel file; output: sixel (default: stdout).
                  A sixel file (header ESC P ... q) is passed through unchanged unless size/color options are given.
         decode   input: sixel; output format by extension: .bmp, .png, .jpg, .jpeg.
+                 With -o - the image goes to stdout (must be redirected); format via --format (default png).
         check    asks the terminal whether it supports sixel; exit code 0 = yes, 1 = no/unknown.
                  On success a small test image is displayed.
 
@@ -38,6 +39,7 @@ internal static class CliApp
           --fit                 fit into the terminal's drawable area (needs a terminal on stdin/stdout);
                                 --width/--height/--cols/--rows take precedence per axis
           --upscale             also enlarge small images to the given limits (default: shrink only)
+          --format <fmt>        decode only: output format bmp, png or jpg (overrides the file extension)
           -h, --help            show this help
           --version             show version
         """;
@@ -115,6 +117,11 @@ internal static class CliApp
 
     private static void Encode(CliArguments arguments, CliEnvironment env)
     {
+        if (arguments.Format != null)
+        {
+            throw new UsageException("--format is only supported by decode");
+        }
+
         if (arguments.Show)
         {
             RequireTerminalOutput(env);
@@ -238,24 +245,39 @@ internal static class CliApp
             throw new UsageException("decode requires an output file (-o)");
         }
 
-        Func<SixelImage, byte[]> writer = SelectImageWriter(arguments.Output);
+        Func<SixelImage, byte[]> writer = SelectImageWriter(arguments.Output, arguments.Format);
+        if (arguments.Output == StdioName)
+        {
+            RequireRedirectedOutput(env);
+        }
+
         SixelImage image = new SixelDecoder().Decode(ReadInput(arguments.Input!, env));
         WriteOutput(arguments.Output, writer(image), env);
     }
 
-    private static Func<SixelImage, byte[]> SelectImageWriter(string path)
+    /// <summary>Picks the image writer: an explicit --format wins; otherwise the file extension; for stdout (-) the default is PNG.</summary>
+    private static Func<SixelImage, byte[]> SelectImageWriter(string path, string? format)
     {
-        switch (Path.GetExtension(path).ToLowerInvariant())
+        string kind = format ?? (path == StdioName ? "png" : Path.GetExtension(path).TrimStart('.').ToLowerInvariant());
+        switch (kind)
         {
-            case ".bmp":
+            case "bmp":
                 return BmpCodec.Encode;
-            case ".png":
+            case "png":
                 return image => SkiaImageCodec.Encode(image, SKEncodedImageFormat.Png);
-            case ".jpg":
-            case ".jpeg":
+            case "jpg":
+            case "jpeg":
                 return image => SkiaImageCodec.Encode(image, SKEncodedImageFormat.Jpeg);
             default:
-                throw new UsageException("output extension must be .bmp, .png, .jpg or .jpeg");
+                throw new UsageException("output extension must be .bmp, .png, .jpg or .jpeg (or use --format)");
+        }
+    }
+
+    private static void RequireRedirectedOutput(CliEnvironment env)
+    {
+        if (env.IsOutputTerminal())
+        {
+            throw new SixelException("decode to standard output writes binary image data; redirect or pipe stdout.");
         }
     }
 

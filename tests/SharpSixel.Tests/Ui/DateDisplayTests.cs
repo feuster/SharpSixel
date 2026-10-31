@@ -1,3 +1,4 @@
+using System.Globalization;
 using SharpSixel.Ui;
 
 namespace SharpSixel.Tests.Ui;
@@ -9,13 +10,72 @@ public class DateDisplayTests
     private static readonly WidgetEnvironment SixelEnv = new WidgetEnvironment(true, 10, 20);
     private static readonly SixelColor Gray = new SixelColor(128, 128, 128);
 
-    private static DateDisplay On(int day) => new DateDisplay { Date = new DateTime(2026, 10, day) };
+    private static readonly CultureInfo EnUs = CultureInfo.GetCultureInfo("en-US");
+
+    private static DateDisplay On(int day) => WithEnUs(new DateDisplay { Date = new DateTime(2026, 10, day) });
+
+    private static DateDisplay WithEnUs(DateDisplay display)
+    {
+        display.Style.Culture = EnUs;
+        return display;
+    }
 
     [Fact]
     public void Ascii_ShowsFormattedDateWithCaption()
     {
-        Assert.Equal("Wed, 28 Oct 2026", On(28).Render(Plain));
-        Assert.Equal("Today Wed, 28 Oct 2026", new DateDisplay { Date = new DateTime(2026, 10, 28), Caption = "Today" }.Render(Plain));
+        Assert.Equal("Wed, 10/28/2026", On(28).Render(Plain));
+        Assert.Equal(
+            "Today Wed, 10/28/2026",
+            WithEnUs(new DateDisplay { Date = new DateTime(2026, 10, 28), Caption = "Today" }).Render(Plain));
+    }
+
+    [Fact]
+    public void Ascii_UsesDateOrderAndNamesOfTheCulture()
+    {
+        DateDisplay display = On(28);
+        display.Style.Culture = CultureInfo.GetCultureInfo("de-DE");
+        string text = display.Render(Plain);
+        Assert.StartsWith("Mi", text, StringComparison.Ordinal);
+        Assert.EndsWith(", 28.10.2026", text, StringComparison.Ordinal);
+
+        display.Style.Culture = CultureInfo.GetCultureInfo("en-GB");
+        Assert.Equal("Wed, 28/10/2026", display.Render(Plain));
+    }
+
+    [Fact]
+    public void Ascii_WithoutCulture_UsesCurrentCulture()
+    {
+        CultureInfo previous = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+            var display = new DateDisplay { Date = new DateTime(2026, 10, 28) };
+            Assert.EndsWith(", 28.10.2026", display.Render(Plain), StringComparison.Ordinal);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    [Fact]
+    public void Ascii_CustomFormatUsesTheCulture()
+    {
+        DateDisplay display = On(28);
+        display.Style.DateFormat = "dddd, d MMMM yyyy";
+        Assert.Equal("Wednesday, 28 October 2026", display.Render(Plain));
+        display.Style.Culture = CultureInfo.GetCultureInfo("de-DE");
+        Assert.Equal("Mittwoch, 28 Oktober 2026", display.Render(Plain));
+    }
+
+    [Fact]
+    public void DateFormat_NullRestoresLocalizedDefault()
+    {
+        DateDisplay display = On(28);
+        display.Style.DateFormat = "yyyy-MM-dd";
+        display.Style.DateFormat = null;
+        Assert.Null(display.Style.DateFormat);
+        Assert.Equal("Wed, 10/28/2026", display.Render(Plain));
     }
 
     [Fact]
@@ -30,10 +90,10 @@ public class DateDisplayTests
     public void Ascii_WithAnsi_ErasesLineAndColorsTextOnlyIfSet()
     {
         DateDisplay display = On(28);
-        Assert.Equal("Wed, 28 Oct 2026\u001b[K", display.Render(AnsiAscii));
+        Assert.Equal("Wed, 10/28/2026\u001b[K", display.Render(AnsiAscii));
 
         display.Style.TextColor = new SixelColor(255, 0, 0);
-        Assert.Equal("\u001b[38;2;255;0;0mWed, 28 Oct 2026\u001b[0m\u001b[K", display.Render(AnsiAscii));
+        Assert.Equal("\u001b[38;2;255;0;0mWed, 10/28/2026\u001b[0m\u001b[K", display.Render(AnsiAscii));
         Assert.DoesNotContain("\u001b", display.Render(Plain), StringComparison.Ordinal);
     }
 
@@ -53,7 +113,6 @@ public class DateDisplayTests
         Assert.Throws<ArgumentOutOfRangeException>(() => new DateDisplayStyle().HeightRows = 0);
         Assert.Throws<ArgumentOutOfRangeException>(() => new DateDisplayStyle().LineThickness = 5);
         Assert.Throws<ArgumentOutOfRangeException>(() => new DateDisplayStyle().CornerRadius = -1);
-        Assert.Throws<ArgumentNullException>(() => new DateDisplayStyle().DateFormat = null!);
         Assert.Throws<ArgumentException>(() => new DateDisplayStyle().DateFormat = string.Empty);
         Assert.Throws<FormatException>(() => new DateDisplayStyle().DateFormat = "%");
     }
@@ -126,12 +185,12 @@ public class DateDisplayTests
     [Fact]
     public void SixelFrame_ContainsImageDateAndErase()
     {
-        string frame = new DateDisplay { Date = new DateTime(2026, 10, 28), Caption = "Today" }.Render(SixelEnv);
+        string frame = WithEnUs(new DateDisplay { Date = new DateTime(2026, 10, 28), Caption = "Today" }).Render(SixelEnv);
         Assert.StartsWith("\u001b7", frame, StringComparison.Ordinal);
         Assert.Contains("\u001bP", frame, StringComparison.Ordinal);
         Assert.Contains("\u001b[6X", frame, StringComparison.Ordinal);
         Assert.Contains("\u001b[1BToday ", frame, StringComparison.Ordinal);
-        Assert.Contains(" Wed, 28 Oct 2026\u001b[K", frame, StringComparison.Ordinal);
+        Assert.Contains(" Wed, 10/28/2026\u001b[K", frame, StringComparison.Ordinal);
         Assert.EndsWith("\u001b8", frame, StringComparison.Ordinal);
     }
 

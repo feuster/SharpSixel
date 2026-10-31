@@ -1,8 +1,8 @@
-﻿================================================================================
+================================================================================
  SharpSixel  -  Sixel-Grafiken enkodieren und dekodieren
 ================================================================================
 
- Version : 1.3.0  (aktuelle Version des Programms: SharpSixel --version)
+ Version : 1.4.0  (aktuelle Version des Programms: SharpSixel --version)
  Autor   : Alexander Feuster
  Lizenz  : MIT
  English version: README.en.txt
@@ -153,7 +153,7 @@ Aufruf:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Aufruf:
 
-    SharpSixel decode <Eingabe> -o <Datei>
+    SharpSixel decode <Eingabe> -o <Datei> [--format bmp|png|jpg]
 
   <Eingabe>   Pfad zu einer Sixel-Datei oder "-" für die Standardeingabe.
               Die Daten dürfen mit der Steuersequenz ESC P ... q beginnen
@@ -163,6 +163,12 @@ Aufruf:
                 .bmp           BMP (24 Bit, bei Transparenz 32 Bit mit Alpha)
                 .png           PNG (verlustfrei, mit Transparenz)
                 .jpg / .jpeg   JPEG (Qualität 90, keine Transparenz)
+              Mit -o - wird das Bild auf die Standardausgabe geschrieben (Binärdaten;
+              stdout muss umgeleitet oder in eine Pipe geleitet sein, sonst bricht
+              das Programm ab). Ohne Endung ist das Format PNG.
+  --format <f>  Optional. bmp, png oder jpg; überschreibt die Dateiendung und wählt
+              das Format für -o -.
+              Beispiel: SharpSixel decode bild.six -o - --format png | anderes-tool
 
 6.3  check  -  Sixel-Unterstützung des Terminals prüfen
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

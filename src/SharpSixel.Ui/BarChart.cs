@@ -101,6 +101,7 @@ public sealed class BarChart : Widget
     /// <inheritdoc />
     protected override string RenderAscii(WidgetEnvironment environment)
     {
+        int barWidth = BarWidth(environment);
         int labelWidth = LabelWidth();
         string[] values = ValueTexts();
         int valueWidth = MaxLength(values);
@@ -113,7 +114,7 @@ public sealed class BarChart : Widget
 
         for (int i = 0; i < _items.Count; i++)
         {
-            int filled = (int)Math.Round(Fraction(_items[i], maximum) * Style.Width, MidpointRounding.AwayFromZero);
+            int filled = (int)Math.Round(Fraction(_items[i], maximum) * barWidth, MidpointRounding.AwayFromZero);
             var sb = new StringBuilder(_items[i].Label.PadRight(labelWidth));
             if (labelWidth > 0)
             {
@@ -121,7 +122,7 @@ public sealed class BarChart : Widget
             }
 
             sb.Append(AnsiCodes.Colorize(new string(Style.AsciiFill, filled), ColorOf(i), environment.UseAnsi));
-            sb.Append(new string(Style.AsciiEmpty, Style.Width - filled));
+            sb.Append(new string(Style.AsciiEmpty, barWidth - filled));
             if (ShowValues)
             {
                 sb.Append(' ').Append(values[i].PadLeft(valueWidth));
@@ -139,6 +140,7 @@ public sealed class BarChart : Widget
         int count = _items.Count;
         int captionRows = CaptionRows;
         int barRows = Style.BarHeightRows;
+        int barWidth = BarWidth(environment);
         int labelWidth = LabelWidth();
         int imageColumn = labelWidth > 0 ? labelWidth + 1 : 0;
         var sb = new StringBuilder(AnsiCodes.SaveCursor);
@@ -162,7 +164,7 @@ public sealed class BarChart : Widget
                 for (int row = 0; row < count * barRows; row++)
                 {
                     sb.Append(AnsiCodes.Down(captionRows + row)).Append(AnsiCodes.Forward(imageColumn))
-                        .Append(AnsiCodes.EraseChars(Style.Width)).Append(AnsiCodes.RestoreCursor);
+                        .Append(AnsiCodes.EraseChars(barWidth)).Append(AnsiCodes.RestoreCursor);
                 }
             }
 
@@ -175,7 +177,7 @@ public sealed class BarChart : Widget
                 int valueWidth = MaxLength(values);
                 for (int i = 0; i < count; i++)
                 {
-                    sb.Append(AnsiCodes.Down(TextRow(i))).Append(AnsiCodes.Forward(imageColumn + Style.Width))
+                    sb.Append(AnsiCodes.Down(TextRow(i))).Append(AnsiCodes.Forward(imageColumn + barWidth))
                         .Append(' ').Append(values[i].PadLeft(valueWidth)).Append(AnsiCodes.EraseLineRest)
                         .Append(AnsiCodes.RestoreCursor);
                 }
@@ -188,7 +190,8 @@ public sealed class BarChart : Widget
     internal SixelImage CreateImage(WidgetEnvironment environment)
     {
         int count = _items.Count;
-        int width = Style.Width * environment.CellWidth;
+        int barWidth = BarWidth(environment);
+        int width = barWidth * environment.CellWidth;
         int height = environment.GetImageHeight(count * Style.BarHeightRows);
         var image = new SixelImage(width, height);
         if (Style.BackgroundColor.A > 0)
@@ -221,6 +224,24 @@ public sealed class BarChart : Widget
     private int TextRow(int index) => CaptionRows + (index * Style.BarHeightRows) + ((Style.BarHeightRows - 1) / 2);
 
     private SixelColor ColorOf(int index) => _items[index].Color ?? Style.PaletteColorAt(index);
+
+    /// <summary>Bar width in cells: <see cref="BarChartStyle.Width"/>, reduced so label, bar and value fit the terminal width.</summary>
+    private int BarWidth(WidgetEnvironment environment)
+    {
+        if (environment.Columns <= 0)
+        {
+            return Style.Width;
+        }
+
+        int labelWidth = LabelWidth();
+        int used = labelWidth > 0 ? labelWidth + 1 : 0;
+        if (ShowValues)
+        {
+            used += 1 + MaxLength(ValueTexts());
+        }
+
+        return Math.Max(1, Math.Min(Style.Width, environment.Columns - used));
+    }
 
     private int LabelWidth()
     {

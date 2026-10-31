@@ -1,3 +1,4 @@
+using System.Globalization;
 using SharpSixel;
 using SharpSixel.Ui;
 
@@ -18,7 +19,9 @@ internal sealed class UiCliEnvironment
         Func<IDisposable>? enterOutputMode = null,
         Func<InputEvent>? readInput = null,
         Func<IDisposable>? enterInputMode = null,
-        Func<DateTime>? now = null)
+        Func<DateTime>? now = null,
+        CultureInfo? culture = null,
+        Func<int>? getColumns = null)
     {
         Output = output;
         Error = error;
@@ -32,6 +35,8 @@ internal sealed class UiCliEnvironment
         ReadInput = readInput;
         EnterInputMode = enterInputMode;
         Now = now ?? (() => DateTime.Now);
+        Culture = culture;
+        Columns = getColumns ?? (() => 0);
     }
 
     /// <summary>Output for widgets and help.</summary>
@@ -69,4 +74,10 @@ internal sealed class UiCliEnvironment
 
     /// <summary>Current local date and time (clock and date commands); the system time by default.</summary>
     public Func<DateTime> Now { get; }
+
+    /// <summary>Culture of the date text; null uses the current culture of the system.</summary>
+    public CultureInfo? Culture { get; }
+
+    /// <summary>Terminal width in character cells; 0 if unknown (widgets are then not limited).</summary>
+    public Func<int> Columns { get; }
 }

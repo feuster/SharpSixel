@@ -2,7 +2,7 @@
 #   publish\SharpSixel.exe     standalone single-file CLI (win-x64, self-contained)
 #   publish\SharpSixelUI.exe   standalone single-file widget demo CLI (win-x64, self-contained)
 #   publish\README*.txt        user manuals (German/English: docs\README*.txt, docs\README.Ui*.txt)
-#   publish\nuget\*.nupkg      local NuGet packages SharpSixel, SharpSixel.Skia, SharpSixel.Ui and SharpSixel.Osc
+#   publish\nuget\*.nupkg + *.snupkg (symbols, SourceLink)      local NuGet packages SharpSixel, SharpSixel.Skia, SharpSixel.Ui and SharpSixel.Osc
 # Optional: .\publish.ps1 -Version 0.2.0 sets the version of the exes and of all packages.
 param([string]$Version)
 

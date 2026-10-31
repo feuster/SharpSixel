@@ -9,7 +9,7 @@ public sealed class DateDisplayStyle
     private int _heightRows = 3;
     private int _lineThickness = 2;
     private int _cornerRadius = 4;
-    private string _dateFormat = "ddd, dd MMM yyyy";
+    private string? _dateFormat;
 
     /// <summary>Rows the sixel graphic occupies (1-20); the calendar page is square. Default 3.</summary>
     public int HeightRows
@@ -33,27 +33,42 @@ public sealed class DateDisplayStyle
     }
 
     /// <summary>
-    /// .NET date and time format of the date text (invariant culture). Default <c>ddd, dd MMM yyyy</c> (for example <c>Wed, 28 Oct 2026</c>).
-    /// A format that is not valid is rejected with a <see cref="FormatException"/>.
+    /// Culture of the date text (weekday and month names, date order). Null (default) uses the current culture of the
+    /// system.
     /// </summary>
-    public string DateFormat
+    public CultureInfo? Culture { get; set; }
+
+    /// <summary>
+    /// .NET date and time format of the date text, applied with <see cref="Culture"/>. Null (default) = localized
+    /// default: abbreviated weekday and short date of the culture (for example <c>Wed, 10/28/2026</c> or
+    /// <c>Mi, 28.10.2026</c>). An empty or invalid format is rejected with an <see cref="ArgumentException"/> or a
+    /// <see cref="FormatException"/>.
+    /// </summary>
+    public string? DateFormat
     {
         get => _dateFormat;
         set
         {
-            if (value == null)
+            if (value != null)
             {
-                throw new ArgumentNullException(nameof(value));
+                if (value.Length == 0)
+                {
+                    throw new ArgumentException("The format must not be empty.", nameof(value));
+                }
+
+                _ = DateTime.MinValue.ToString(value, CultureInfo.InvariantCulture);
             }
 
-            if (value.Length == 0)
-            {
-                throw new ArgumentException("The format must not be empty.", nameof(value));
-            }
-
-            _ = DateTime.MinValue.ToString(value, CultureInfo.InvariantCulture);
             _dateFormat = value;
         }
+    }
+
+    internal string Format(DateTime date)
+    {
+        CultureInfo culture = Culture ?? CultureInfo.CurrentCulture;
+        return _dateFormat != null
+            ? date.ToString(_dateFormat, culture)
+            : date.ToString("ddd", culture).TrimEnd('.') + ", " + date.ToString("d", culture);
     }
 
     /// <summary>Color of the outline and the line below the top part. Sixel only.</summary>

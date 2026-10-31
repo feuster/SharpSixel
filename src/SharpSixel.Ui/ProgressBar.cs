@@ -70,7 +70,7 @@ public sealed class ProgressBar : Widget
     /// <inheritdoc />
     protected override string RenderAscii(WidgetEnvironment environment)
     {
-        int inner = Style.Width - 2;
+        int inner = BarWidth(environment) - 2;
         int filled = (int)Math.Round(Fraction * inner, MidpointRounding.AwayFromZero);
         bool ansi = environment.UseAnsi;
         var sb = new StringBuilder();
@@ -93,14 +93,14 @@ public sealed class ProgressBar : Widget
         SixelFrame.Build(
             CreateImage(environment),
             Style.HeightRows,
-            Style.Width,
+            BarWidth(environment),
             CaptionPrefix(),
             TrailingText(),
             Style.BackgroundColor.A < TransparentAlphaLimit);
 
     internal SixelImage CreateImage(WidgetEnvironment environment)
     {
-        int width = Style.Width * environment.CellWidth;
+        int width = BarWidth(environment) * environment.CellWidth;
         int height = environment.GetImageHeight(Style.HeightRows);
         var image = new SixelImage(width, height);
         if (Style.BackgroundColor.A > 0)
@@ -127,6 +127,12 @@ public sealed class ProgressBar : Widget
         Raster.FillRoundedRect(image, innerX, innerY, innerWidth, innerHeight, innerRadius, Style.FillColor, fillEnd);
         return image;
     }
+
+    /// <summary>Bar width in cells: <see cref="ProgressBarStyle.Width"/>, reduced so caption, bar and text fit the terminal width (at least 3).</summary>
+    private int BarWidth(WidgetEnvironment environment) =>
+        environment.Columns <= 0
+            ? Style.Width
+            : Math.Min(Style.Width, Math.Max(3, environment.Columns - CaptionPrefix().Length - TrailingText().Length));
 
     private string CaptionPrefix() => string.IsNullOrEmpty(Caption) ? string.Empty : Caption + " ";
 

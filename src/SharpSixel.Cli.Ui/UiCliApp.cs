@@ -24,8 +24,9 @@ clock shows the current time for --duration seconds: sixel draws an analog clock
 time, ASCII shows the digital time; --caption sets a label before it; --border sets the rim, --fill the face, --active the
 hands, --background the background of the graphic.
 
-date shows the current date: sixel draws a calendar page with the day number (--rows = size) followed by the date text (for
-example Wed, 28 Oct 2026), ASCII shows the date text; --caption sets a label before it; --radius sets the corner radius,
+date shows the current date: sixel draws a calendar page with the day number (--rows = size) followed by the date text (in the
+language and date order of the system, for example Wed, 10/28/2026 or Mi, 28.10.2026), ASCII shows the date text; --caption
+sets a label before it; --radius sets the corner radius,
 --border the outline, --fill the page, --active the day number, --background the background of the graphic.
 
 tree shows a tree with demo nodes (--caption sets the root title, default Files; a collapsed node is marked [+]): sixel draws
@@ -201,7 +202,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         var widgets = WidgetEnvironment.Create(
             live ? a.Mode : RenderMode.Ascii,
             live ? env.QueryTerminal() : null,
-            useAnsi: live && !a.NoAnsi);
+            useAnsi: live && !a.NoAnsi, columns: live ? env.Columns() : 0);
         var style = new ImageViewStyle();
         if (a.Border is SixelColor border) { style.ShowBorder = true; style.BorderColor = border; }
         if (a.Background is SixelColor background) { style.BackgroundColor = background; }
@@ -274,7 +275,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             return 1;
         }
 
-        var widgets = WidgetEnvironment.Create(a.Mode, env.QueryTerminal(), useAnsi: !a.NoAnsi);
+        var widgets = WidgetEnvironment.Create(a.Mode, env.QueryTerminal(), useAnsi: !a.NoAnsi, columns: env.Columns());
         PromptStyle style = CreatePromptStyle(a);
         FileDialog dialog = save ? new SaveFileDialog(style) : new OpenFileDialog(style);
         dialog.Title = a.Caption ?? (save ? "Save file" : "Open file");
@@ -312,7 +313,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             return 1;
         }
 
-        var widgets = WidgetEnvironment.Create(a.Mode, env.QueryTerminal(), useAnsi: !a.NoAnsi);
+        var widgets = WidgetEnvironment.Create(a.Mode, env.QueryTerminal(), useAnsi: !a.NoAnsi, columns: env.Columns());
         PromptStyle style = CreatePromptStyle(a);
 
         try
@@ -376,7 +377,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         var widgets = WidgetEnvironment.Create(
             live ? arguments.Mode : RenderMode.Ascii,
             live ? env.QueryTerminal() : null,
-            useAnsi: live && !arguments.NoAnsi);
+            useAnsi: live && !arguments.NoAnsi, columns: live ? env.Columns() : 0);
 
         using (live ? env.EnterTerminalMode() : null)
         {
@@ -620,6 +621,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
     private static void RunDate(UiCliArguments a, WidgetEnvironment widgets, UiCliEnvironment env, bool live)
     {
         var date = new DateDisplay { Caption = a.Caption, Date = env.Now() };
+        date.Style.Culture = env.Culture;
         DateDisplayStyle style = date.Style;
         if (a.Rows is int rows) { style.HeightRows = rows; }
         if (a.Radius is int radius) { style.CornerRadius = radius; }
@@ -692,7 +694,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             return 1;
         }
 
-        var widgets = WidgetEnvironment.Create(a.Mode, env.QueryTerminal(), useAnsi: !a.NoAnsi);
+        var widgets = WidgetEnvironment.Create(a.Mode, env.QueryTerminal(), useAnsi: !a.NoAnsi, columns: env.Columns());
         Button button = CreateButton(a);
         bool clicked = false;
         bool cancelled = false;

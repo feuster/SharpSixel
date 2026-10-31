@@ -49,15 +49,15 @@ public sealed class Tree : Widget
     }
 
     /// <inheritdoc />
-    protected override int SixelRows => Math.Max(1, BuildLayout().TotalRows);
+    protected override int SixelRows => Math.Max(1, BuildLayout(0).TotalRows);
 
     /// <inheritdoc />
-    protected override int AsciiRows => Math.Max(1, BuildLayout().TotalRows);
+    protected override int AsciiRows => Math.Max(1, BuildLayout(0).TotalRows);
 
     /// <inheritdoc />
     protected override string RenderAscii(WidgetEnvironment environment)
     {
-        Layout layout = BuildLayout();
+        Layout layout = BuildLayout(environment.Columns);
         bool ansi = environment.UseAnsi;
         var lines = new List<string>();
         if (layout.HasTitle)
@@ -76,7 +76,7 @@ public sealed class Tree : Widget
     /// <inheritdoc />
     protected override string RenderSixel(WidgetEnvironment environment)
     {
-        Layout layout = BuildLayout();
+        Layout layout = BuildLayout(environment.Columns);
         int rows = Math.Max(1, layout.TotalRows);
         var sb = new StringBuilder(AnsiCodes.SaveCursor);
         for (int row = 0; row < rows; row++)
@@ -107,7 +107,7 @@ public sealed class Tree : Widget
 
     internal SixelImage CreateImage(WidgetEnvironment environment)
     {
-        Layout layout = BuildLayout();
+        Layout layout = BuildLayout(environment.Columns);
         int offset = layout.HasTitle ? 1 : 0;
         int rows = Math.Max(1, layout.TotalRows);
         int cellWidth = environment.CellWidth;
@@ -207,7 +207,7 @@ public sealed class Tree : Widget
         }
     }
 
-    private Layout BuildLayout()
+    private Layout BuildLayout(int limit)
     {
         string title = PromptRow.Clean(Title);
         var rows = new List<Row>();
@@ -216,6 +216,20 @@ public sealed class Tree : Widget
         foreach (Row row in rows)
         {
             maxColumns = Math.Max(maxColumns, row.Columns);
+        }
+
+        if (limit > 0)
+        {
+            title = TextFit.Clip(title, limit);
+            for (int i = 0; i < rows.Count; i++)
+            {
+                Row row = rows[i];
+                string text = TextFit.Clip(row.Text, Math.Max(0, limit - (row.Columns * GuideCells)));
+                if (!string.Equals(text, row.Text, StringComparison.Ordinal))
+                {
+                    rows[i] = new Row(text, row.Columns, row.IsLast, row.Continues);
+                }
+            }
         }
 
         return new Layout(title, rows, maxColumns);

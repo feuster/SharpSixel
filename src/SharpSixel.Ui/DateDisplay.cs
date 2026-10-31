@@ -149,7 +149,7 @@ public sealed class DateDisplay : Widget
 
     private string DateText(bool ansi) =>
         AnsiCodes.Colorize(
-            Date.ToString(Style.DateFormat, CultureInfo.InvariantCulture),
+            Style.Format(Date),
             Style.TextColor,
             ansi && Style.TextColor.A >= ColorAlphaLimit);
 }

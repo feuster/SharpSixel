@@ -2,7 +2,7 @@
  SharpSixelUI / SharpSixel.Ui  -  Terminal widgets drawn as sixel graphics
 ================================================================================
 
- Version : 1.3.0
+ Version : 1.4.0
  Author  : Alexander Feuster
  License : MIT
  Deutsche Version: README.Ui.txt
@@ -53,7 +53,8 @@ SharpSixel.exe is described in README.en.txt.
   clock       shows the current time, updated continuously (--duration seconds, default 5); --caption sets a label before it,
               --rows the size of the graphic (1-20, default 3), --border the rim, --fill the face, --active the hands,
               --background the background of the graphic
-  date        shows the current date (e.g. Wed, 28 Oct 2026); --caption, --rows, --background as for clock, plus
+  date        shows the current date in the language and order of the system (e.g. Wed, 10/28/2026);
+              --caption, --rows, --background as for clock, plus
               --radius (corner radius), --border (outline), --fill (page) and --active (day number)
   tree        shows a tree with demo nodes (--caption sets the root title, default "Files"; the collapsed node "tests" is
               marked [+]); --border sets the guide color, --active the title color
@@ -229,7 +230,7 @@ Time and date (the widgets do not tick by themselves: set Time/Date before each 
         region.Update(clock);
     }
 
-    var date = new DateDisplay { Date = DateTime.Today };   // default format "ddd, dd MMM yyyy"
+    var date = new DateDisplay { Date = DateTime.Today };   // text in the culture of the system, e.g. "Wed, 10/28/2026"
     // as above: region.Begin(date.GetRows(env)); region.Update(date);
 
 Tree (hierarchical list with guide lines; the title is the root, collapsed nodes hide their children):
@@ -340,8 +341,9 @@ Types:
   ValidationResult    Success(), Error(message), IsValid, Message
   PromptStyle         ActiveColor, InactiveColor, ErrorColor, BackgroundColor,
                       AsciiPointer, AsciiRadioOn/Off, AsciiCheckOn/Off
-  WidgetEnvironment   sixel or ASCII, cell size in pixels, ANSI usage;
-                      Create(RenderMode, SixelTerminalInfo?) decides by mode
+  WidgetEnvironment   sixel or ASCII, cell size in pixels, ANSI usage, Columns (terminal
+                      width in cells, 0 = unknown); Create(RenderMode, SixelTerminalInfo?,
+                      useAnsi, columns) decides by mode
   RenderMode          Auto, Sixel, Ascii
   Widget              base class: Render(env) returns one frame, GetRows(env)
   BarChart            Items, Add(label, value, color), Caption, Maximum, ShowValues,
@@ -362,7 +364,7 @@ Types:
   ClockStyle          HeightRows, LineThickness, ShowSecondHand, TimeFormat, BorderColor, FaceColor,
                       TickColor, HandColor, SecondHandColor, TextColor, BackgroundColor
   DateDisplay         Date, Caption, Style
-  DateDisplayStyle    HeightRows, LineThickness, CornerRadius, DateFormat, BorderColor, AccentColor,
+  DateDisplayStyle    HeightRows, LineThickness, CornerRadius, DateFormat, Culture, BorderColor, AccentColor,
                       DigitColor, PaperColor, TextColor, BackgroundColor
   Tree                Title, Nodes, AddNode(text), Style
   TreeNode            Text, Expanded, Nodes, AddNode(text)
@@ -393,6 +395,12 @@ Types:
 
 4. NOTES AND LIMITS
 -------------------
+  * WidgetEnvironment.Columns (terminal width in cells) limits widgets with a flexible
+    width: Table (widest columns shrink, text cut with an ellipsis), Panel, Tree,
+    BarChart and ProgressBar (bar gets narrower). Create takes the value from its
+    columns argument or derives it from the reported text area and cell size; 0 means
+    unknown, then nothing is limited. The demo CLI passes Console.WindowWidth. Prompts,
+    dialogs and the other widgets are not limited.
   * Captions and progress text are normal terminal text next to the graphic
     (sixel has no font). One character is assumed to occupy one cell.
   * LiveRegion reserves the rows first, saves the cursor position (ESC 7 / ESC 8)
@@ -454,8 +462,9 @@ Types:
     Caption is shown before it.
   * DateDisplay: shows Date (date part only), set like Clock. Sixel: square calendar
     page (outline, separator line, two binder rings, day number in seven-segment
-    digits) as one image, followed by the formatted date as terminal text (DateFormat,
-    default "ddd, dd MMM yyyy", e.g. Wed, 28 Oct 2026). ASCII: the date text only.
+    digits) as one image, followed by the formatted date as terminal text (Culture, null =
+    culture of the system; DateFormat, null = abbreviated weekday and short date of the
+    culture, e.g. Wed, 10/28/2026 or Mi, 28.10.2026). ASCII: the date text only.
     The style setters reject invalid formats with a FormatException.
   * Tree: hierarchical list of TreeNode objects (Text, Expanded, Nodes) with an optional
     Title as root row. Sixel and ASCII use the same rows (title, then one row per visible

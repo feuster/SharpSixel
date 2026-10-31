@@ -2,7 +2,7 @@
  SharpSixel  -  Sixel-Grafiken enkodieren und dekodieren
 ================================================================================
 
- Version : 1.4.0  (aktuelle Version des Programms: SharpSixel --version)
+ Version : 1.4.1  (aktuelle Version des Programms: SharpSixel --version)
  Autor   : Alexander Feuster
  Lizenz  : MIT
  English version: README.en.txt

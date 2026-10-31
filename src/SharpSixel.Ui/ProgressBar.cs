@@ -8,6 +8,7 @@ namespace SharpSixel.Ui;
 public sealed class ProgressBar : Widget
 {
     private const int TransparentAlphaLimit = 128;
+    private const int MinBarWidth = 3;
     private double _maximum = 100;
 
     /// <summary>Creates a progress bar with the default style.</summary>
@@ -70,16 +71,17 @@ public sealed class ProgressBar : Widget
     /// <inheritdoc />
     protected override string RenderAscii(WidgetEnvironment environment)
     {
-        int inner = BarWidth(environment) - 2;
+        var layout = Layout(environment);
+        int inner = layout.Bar - 2;
         int filled = (int)Math.Round(Fraction * inner, MidpointRounding.AwayFromZero);
         bool ansi = environment.UseAnsi;
         var sb = new StringBuilder();
-        sb.Append(CaptionPrefix());
+        sb.Append(layout.Prefix);
         sb.Append(AnsiCodes.Colorize(Style.AsciiBorderLeft.ToString(), Style.BorderColor, ansi));
         sb.Append(AnsiCodes.Colorize(new string(Style.AsciiFill, filled), Style.FillColor, ansi));
         sb.Append(AnsiCodes.Colorize(new string(Style.AsciiEmpty, inner - filled), Style.TrackColor, ansi));
         sb.Append(AnsiCodes.Colorize(Style.AsciiBorderRight.ToString(), Style.BorderColor, ansi));
-        sb.Append(TrailingText());
+        sb.Append(layout.Trailing);
         if (ansi)
         {
             sb.Append(AnsiCodes.EraseLineRest);
@@ -89,14 +91,17 @@ public sealed class ProgressBar : Widget
     }
 
     /// <inheritdoc />
-    protected override string RenderSixel(WidgetEnvironment environment) =>
-        SixelFrame.Build(
+    protected override string RenderSixel(WidgetEnvironment environment)
+    {
+        var layout = Layout(environment);
+        return SixelFrame.Build(
             CreateImage(environment),
             Style.HeightRows,
-            BarWidth(environment),
-            CaptionPrefix(),
-            TrailingText(),
+            layout.Bar,
+            layout.Prefix,
+            layout.Trailing,
             Style.BackgroundColor.A < TransparentAlphaLimit);
+    }
 
     internal SixelImage CreateImage(WidgetEnvironment environment)
     {
@@ -128,11 +133,34 @@ public sealed class ProgressBar : Widget
         return image;
     }
 
-    /// <summary>Bar width in cells: <see cref="ProgressBarStyle.Width"/>, reduced so caption, bar and text fit the terminal width (at least 3).</summary>
-    private int BarWidth(WidgetEnvironment environment) =>
-        environment.Columns <= 0
-            ? Style.Width
-            : Math.Min(Style.Width, Math.Max(3, environment.Columns - CaptionPrefix().Length - TrailingText().Length));
+    /// <summary>Bar width in cells (see <see cref="Layout"/>).</summary>
+    private int BarWidth(WidgetEnvironment environment) => Layout(environment).Bar;
+
+    /// <summary>
+    /// Splits the terminal width into caption, bar and text. The bar is reduced to <see cref="ProgressBarStyle.Width"/> at most and
+    /// to <see cref="MinBarWidth"/> at least; if caption and text still do not fit, the text and then the caption are cut
+    /// (with an ellipsis) so the line never exceeds the terminal width and cannot wrap into the following lines.
+    /// </summary>
+    private (string Prefix, string Trailing, int Bar) Layout(WidgetEnvironment environment)
+    {
+        string prefix = CaptionPrefix();
+        string trailing = TrailingText();
+        if (environment.Columns <= 0)
+        {
+            return (prefix, trailing, Style.Width);
+        }
+
+        int available = Math.Max(0, environment.Columns - MinBarWidth);
+        if (prefix.Length + trailing.Length > available)
+        {
+            trailing = TextFit.Clip(trailing, available);
+            int room = available - trailing.Length;
+            prefix = room >= 2 && Caption is not null ? TextFit.Clip(Caption, room - 1) + " " : string.Empty;
+        }
+
+        int bar = Math.Min(Style.Width, Math.Max(MinBarWidth, environment.Columns - prefix.Length - trailing.Length));
+        return (prefix, trailing, bar);
+    }
 
     private string CaptionPrefix() => string.IsNullOrEmpty(Caption) ? string.Empty : Caption + " ";
 

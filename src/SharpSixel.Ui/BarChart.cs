@@ -14,6 +14,7 @@ namespace SharpSixel.Ui;
 public sealed class BarChart : Widget
 {
     private const int TransparentAlphaLimit = 128;
+    private const int MinBarWidth = 3;
     private const string DefaultValueFormat = "0.##";
     private readonly ItemCollection _items = new ItemCollection();
     private double? _maximum;
@@ -101,21 +102,22 @@ public sealed class BarChart : Widget
     /// <inheritdoc />
     protected override string RenderAscii(WidgetEnvironment environment)
     {
-        int barWidth = BarWidth(environment);
-        int labelWidth = LabelWidth();
+        var layout = Layout(environment);
+        int barWidth = layout.Bar;
+        int labelWidth = layout.Label;
         string[] values = ValueTexts();
-        int valueWidth = MaxLength(values);
+        int valueWidth = layout.ValueWidth;
         double maximum = EffectiveMaximum();
         var lines = new List<string>();
         if (CaptionRows > 0)
         {
-            lines.Add(Caption!);
+            lines.Add(CaptionText(environment));
         }
 
         for (int i = 0; i < _items.Count; i++)
         {
             int filled = (int)Math.Round(Fraction(_items[i], maximum) * barWidth, MidpointRounding.AwayFromZero);
-            var sb = new StringBuilder(_items[i].Label.PadRight(labelWidth));
+            var sb = new StringBuilder(TextFit.Clip(_items[i].Label, labelWidth).PadRight(labelWidth));
             if (labelWidth > 0)
             {
                 sb.Append(' ');
@@ -123,7 +125,7 @@ public sealed class BarChart : Widget
 
             sb.Append(AnsiCodes.Colorize(new string(Style.AsciiFill, filled), ColorOf(i), environment.UseAnsi));
             sb.Append(new string(Style.AsciiEmpty, barWidth - filled));
-            if (ShowValues)
+            if (layout.Values)
             {
                 sb.Append(' ').Append(values[i].PadLeft(valueWidth));
             }
@@ -140,22 +142,24 @@ public sealed class BarChart : Widget
         int count = _items.Count;
         int captionRows = CaptionRows;
         int barRows = Style.BarHeightRows;
-        int barWidth = BarWidth(environment);
-        int labelWidth = LabelWidth();
+        var layout = Layout(environment);
+        int barWidth = layout.Bar;
+        int labelWidth = layout.Label;
         int imageColumn = labelWidth > 0 ? labelWidth + 1 : 0;
         var sb = new StringBuilder(AnsiCodes.SaveCursor);
         if (captionRows > 0)
         {
-            sb.Append(Caption).Append(AnsiCodes.EraseLineRest).Append(AnsiCodes.RestoreCursor);
+            sb.Append(CaptionText(environment)).Append(AnsiCodes.EraseLineRest).Append(AnsiCodes.RestoreCursor);
         }
 
         if (count > 0)
         {
             for (int i = 0; i < count; i++)
             {
-                if (_items[i].Label.Length > 0)
+                string label = TextFit.Clip(_items[i].Label, labelWidth);
+                if (label.Length > 0)
                 {
-                    sb.Append(AnsiCodes.Down(TextRow(i))).Append(_items[i].Label).Append(AnsiCodes.RestoreCursor);
+                    sb.Append(AnsiCodes.Down(TextRow(i))).Append(label).Append(AnsiCodes.RestoreCursor);
                 }
             }
 
@@ -171,10 +175,22 @@ public sealed class BarChart : Widget
             sb.Append(AnsiCodes.Down(captionRows)).Append(AnsiCodes.Forward(imageColumn))
                 .Append(new SixelEncoder().Encode(CreateImage(environment))).Append(AnsiCodes.RestoreCursor);
 
-            if (ShowValues)
+            // The image may reach into the cell after the bar (cell size is an estimate) and text only replaces the cells of its own
+            // row: clear the value column in every row of the bars so no image remnant stays next to the values.
+            int clearWidth = layout.Values ? 1 + layout.ValueWidth : 1;
+            if (environment.Columns <= 0 || imageColumn + barWidth + clearWidth <= environment.Columns)
+            {
+                for (int row = 0; row < count * barRows; row++)
+                {
+                    sb.Append(AnsiCodes.Down(captionRows + row)).Append(AnsiCodes.Forward(imageColumn + barWidth))
+                        .Append(AnsiCodes.EraseChars(clearWidth)).Append(AnsiCodes.RestoreCursor);
+                }
+            }
+
+            if (layout.Values)
             {
                 string[] values = ValueTexts();
-                int valueWidth = MaxLength(values);
+                int valueWidth = layout.ValueWidth;
                 for (int i = 0; i < count; i++)
                 {
                     sb.Append(AnsiCodes.Down(TextRow(i))).Append(AnsiCodes.Forward(imageColumn + barWidth))
@@ -225,22 +241,45 @@ public sealed class BarChart : Widget
 
     private SixelColor ColorOf(int index) => _items[index].Color ?? Style.PaletteColorAt(index);
 
-    /// <summary>Bar width in cells: <see cref="BarChartStyle.Width"/>, reduced so label, bar and value fit the terminal width.</summary>
-    private int BarWidth(WidgetEnvironment environment)
+    /// <summary>Bar width in cells (see <see cref="Layout"/>).</summary>
+    private int BarWidth(WidgetEnvironment environment) => Layout(environment).Bar;
+
+    /// <summary>Caption cut to the terminal width so it cannot wrap into the bar rows.</summary>
+    private string CaptionText(WidgetEnvironment environment) =>
+        environment.Columns > 0 ? TextFit.Clip(Caption!, environment.Columns) : Caption!;
+
+    /// <summary>
+    /// Splits the terminal width into label, bar and value. The bar keeps at least <see cref="MinBarWidth"/> cells (as far as the
+    /// terminal allows); if label and value do not fit next to it, the value column is dropped when it alone is too wide,
+    /// and the labels are cut (with an ellipsis) or hidden, so no line exceeds the terminal width and wraps into other rows.
+    /// </summary>
+    private (int Label, bool Values, int ValueWidth, int Bar) Layout(WidgetEnvironment environment)
     {
+        int label = LabelWidth();
+        bool values = ShowValues;
+        int valueWidth = values ? MaxLength(ValueTexts()) : 0;
         if (environment.Columns <= 0)
         {
-            return Style.Width;
+            return (label, values, valueWidth, Style.Width);
         }
 
-        int labelWidth = LabelWidth();
-        int used = labelWidth > 0 ? labelWidth + 1 : 0;
-        if (ShowValues)
+        int available = Math.Max(0, environment.Columns - MinBarWidth);
+        if (values && 1 + valueWidth > available)
         {
-            used += 1 + MaxLength(ValueTexts());
+            values = false;
+            valueWidth = 0;
         }
 
-        return Math.Max(1, Math.Min(Style.Width, environment.Columns - used));
+        int valueNeed = values ? 1 + valueWidth : 0;
+        if (label > 0 && label + 1 > available - valueNeed)
+        {
+            int room = available - valueNeed - 1;
+            label = room >= 1 ? room : 0;
+        }
+
+        int used = (label > 0 ? label + 1 : 0) + valueNeed;
+        int bar = Math.Max(1, Math.Min(Style.Width, environment.Columns - used));
+        return (label, values, valueWidth, bar);
     }
 
     private int LabelWidth()

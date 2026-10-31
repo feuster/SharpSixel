@@ -139,4 +139,47 @@ public class ColumnLimitTests
         Assert.StartsWith("[", limited, StringComparison.Ordinal);
         Assert.Contains("]", limited, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData(ProgressTextMode.Percent)]
+    [InlineData(ProgressTextMode.Fraction)]
+    public void ProgressBar_VeryNarrowTerminal_CutsCaptionAndTextSoLineNeverWraps(ProgressTextMode mode)
+    {
+        var bar = new ProgressBar { Caption = "Upload of a long caption", Value = 50, ProgressText = mode };
+
+        for (int columns = 4; columns <= 30; columns++)
+        {
+            string frame = bar.Render(Ascii(columns));
+
+            Assert.True(LongestLine(frame) <= columns, $"columns={columns}: '{frame}'");
+        }
+    }
+
+    [Fact]
+    public void BarChart_VeryNarrowTerminal_CutsCaptionLabelsAndValuesSoLineNeverWraps()
+    {
+        var chart = new BarChart { Caption = "Umsatz pro Quartal im Jahr" };
+        chart.Add("Apples and oranges", 4);
+        chart.Add("Cherries", 123456);
+
+        for (int columns = 3; columns <= 40; columns++)
+        {
+            string frame = chart.Render(Ascii(columns));
+
+            Assert.True(LongestLine(frame) <= columns, $"columns={columns}: '{frame}'");
+        }
+    }
+
+    [Fact]
+    public void BarChart_Sixel_ClearsValueColumnInEveryBarRow()
+    {
+        var chart = new BarChart();
+        chart.Add("A", 4);
+        chart.Add("B", 2);
+
+        string frame = chart.Render(new WidgetEnvironment(true, 10, 20, columns: 60));
+
+        int expected = chart.Items.Count * chart.Style.BarHeightRows;
+        Assert.Equal(expected, frame.Split("\u001b[2X").Length - 1);
+    }
 }

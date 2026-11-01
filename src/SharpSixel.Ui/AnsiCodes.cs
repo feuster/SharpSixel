@@ -24,6 +24,8 @@ internal static class AnsiCodes
 
     public static string Forward(int count) => Csi(count, 'C');
 
+    public static string Back(int count) => Csi(count, 'D');
+
     public static string EraseChars(int count) => Csi(count, 'X');
 
     public static string Foreground(SixelColor color) =>

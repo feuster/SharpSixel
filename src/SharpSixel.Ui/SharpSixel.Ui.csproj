@@ -5,8 +5,8 @@
     <RootNamespace>SharpSixel.Ui</RootNamespace>
     <AssemblyName>SharpSixel.Ui</AssemblyName>
     <PackageId>SharpSixel.Ui</PackageId>
-    <Description>Terminal UI widgets drawn as sixel graphics with automatic ASCII fallback: progress bar, spinner, status display, bar chart, table, button, panel, clock, date display, tree and image view; interactive dialogs, selection and text prompts with validation, file dialogs and mouse support. Customizable styles and colors.</Description>
-    <PackageTags>sixel;terminal;tui;widgets;progressbar;spinner;status;barchart;chart;table;button;panel;clock;date;tree;image;prompt;dialog;console</PackageTags>
+    <Description>Terminal UI widgets drawn as sixel graphics with automatic ASCII fallback: progress bar, spinner, status display, bar chart, table, button, panel, clock, date display, tree, rule, check box, radio group, horizontal layout and image view; interactive dialogs, selection and text prompts with validation, file dialogs and mouse support. Customizable styles and colors.</Description>
+    <PackageTags>sixel;terminal;tui;widgets;progressbar;spinner;status;barchart;chart;table;button;panel;clock;date;tree;rule;checkbox;radio;layout;image;prompt;dialog;console</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

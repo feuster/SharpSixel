@@ -9,7 +9,7 @@ internal static class UiCliApp
 {
     internal const string HelpText = @"SharpSixelUI - demo of the SharpSixel.Ui widgets
 
-Usage: SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|image|prompts|open|save|osc|demo> [options]
+Usage: SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|rule|checkbox|radio|layout|image|prompts|open|save|osc|demo> [options]
 
 table shows a table with demo data (--caption sets the caption); --border sets the grid color, --active the header text
 color, --inactive the header background, --track the background of every second row.
@@ -31,6 +31,18 @@ sets a label before it; --radius sets the corner radius,
 
 tree shows a tree with demo nodes (--caption sets the root title, default Files; a collapsed node is marked [+]): sixel draws
 the guide lines as pixel lines, ASCII uses | + ` -; --border sets the guide color, --active the title color.
+
+rule shows a horizontal rule (--caption sets a centered title, default Section; --width the length in cells, default: the
+terminal width); --border sets the line color, --active the title color.
+
+checkbox shows three check boxes side by side (checked, unchecked and focused, disabled checked); --caption sets the label of
+the first; --active sets the checked/focus color, --inactive the unchecked marker, --background the graphic background.
+
+radio shows a radio group with three options, the second selected and focused (--caption sets the first label); colors as
+for checkbox.
+
+layout shows a panel, a vertical rule and a radio group side by side (--caption sets the panel title, default Status;
+--border the rule color, --active/--inactive the radio colors).
 
 image shows a file (--file, BMP or sixel) or a generated demo image fitted into a view of --width x --rows cells
 (default 40 x 10); --border <color> adds a frame, --background <color> sets the view background.
@@ -103,6 +115,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         if (arguments.Command != "progress" && arguments.Command != "spinner" && arguments.Command != "status"
             && arguments.Command != "chart" && arguments.Command != "table" && arguments.Command != "button"
             && arguments.Command != "panel" && arguments.Command != "clock" && arguments.Command != "date" && arguments.Command != "tree"
+            && arguments.Command != "rule" && arguments.Command != "checkbox" && arguments.Command != "radio" && arguments.Command != "layout"
             && arguments.Command != "image"
             && arguments.Command != "prompts" && arguments.Command != "open" && arguments.Command != "save" && arguments.Command != "osc"
             && arguments.Command != "demo")
@@ -439,6 +452,26 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
                 {
                     RunTree(arguments, widgets, env, live);
                 }
+
+                if ((all || command == "rule") && !(live && env.IsCancelled()))
+                {
+                    RunRule(arguments, widgets, env, live);
+                }
+
+                if ((all || command == "checkbox") && !(live && env.IsCancelled()))
+                {
+                    RunCheckBox(arguments, widgets, env, live);
+                }
+
+                if ((all || command == "radio") && !(live && env.IsCancelled()))
+                {
+                    RunRadio(arguments, widgets, env, live);
+                }
+
+                if ((all || command == "layout") && !(live && env.IsCancelled()))
+                {
+                    RunLayout(arguments, widgets, env, live);
+                }
             }
             finally
             {
@@ -671,6 +704,77 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             region.Begin(tree.GetRows(widgets));
             region.Update(tree);
         }
+    }
+
+    private static void ShowOnce(Widget widget, WidgetEnvironment widgets, UiCliEnvironment env, bool live)
+    {
+        if (!live)
+        {
+            env.Output.WriteLine(widget.Render(widgets).Replace("\n", env.Output.NewLine));
+            return;
+        }
+
+        using (var region = new LiveRegion(env.Output, widgets))
+        {
+            region.Begin(widget.GetRows(widgets));
+            region.Update(widget);
+        }
+    }
+
+    private static ToggleStyle CreateToggleStyle(UiCliArguments a)
+    {
+        var style = new ToggleStyle();
+        if (a.Active is SixelColor active) { style.ActiveColor = active; }
+        if (a.Inactive is SixelColor inactive) { style.InactiveColor = inactive; }
+        if (a.Background is SixelColor background) { style.BackgroundColor = background; }
+        return style;
+    }
+
+    private static RadioGroup CreateRadioGroup(UiCliArguments a, string first)
+    {
+        var group = new RadioGroup(CreateToggleStyle(a)) { SelectedIndex = 1, FocusedIndex = 1 };
+        group.AddOption(first);
+        group.AddOption("Medium");
+        group.AddOption("Large");
+        return group;
+    }
+
+    private static void RunRule(UiCliArguments a, WidgetEnvironment widgets, UiCliEnvironment env, bool live)
+    {
+        var rule = new Rule { Title = a.Caption ?? "Section" };
+        if (a.Width is int width) { rule.Width = width; }
+        if (a.Border is SixelColor border) { rule.Style.Color = border; }
+        if (a.Active is SixelColor active) { rule.Style.TitleColor = active; }
+        ShowOnce(rule, widgets, env, live);
+    }
+
+    private static void RunCheckBox(UiCliArguments a, WidgetEnvironment widgets, UiCliEnvironment env, bool live)
+    {
+        ToggleStyle style = CreateToggleStyle(a);
+        var layout = new HorizontalLayout();
+        layout.Add(new CheckBox(a.Caption ?? "Enabled", style) { Checked = true });
+        layout.Add(new CheckBox("Verbose", style) { Focused = true });
+        layout.Add(new CheckBox("Locked", style) { Checked = true, Enabled = false });
+        ShowOnce(layout, widgets, env, live);
+    }
+
+    private static void RunRadio(UiCliArguments a, WidgetEnvironment widgets, UiCliEnvironment env, bool live) =>
+        ShowOnce(CreateRadioGroup(a, a.Caption ?? "Small"), widgets, env, live);
+
+    private static void RunLayout(UiCliArguments a, WidgetEnvironment widgets, UiCliEnvironment env, bool live)
+    {
+        var panel = new Panel { Title = a.Caption ?? "Status" };
+        panel.AddLine("Server: online");
+        panel.AddLine("Files: 42");
+        panel.AddLine("Errors: 0");
+        var rule = new Rule { Orientation = RuleOrientation.Vertical, Height = 5 };
+        if (a.Border is SixelColor border) { rule.Style.Color = border; }
+
+        var layout = new HorizontalLayout();
+        layout.Add(panel);
+        layout.Add(rule);
+        layout.Add(CreateRadioGroup(a, "Small"));
+        ShowOnce(layout, widgets, env, live);
     }
 
     private static Button CreateButton(UiCliArguments a)

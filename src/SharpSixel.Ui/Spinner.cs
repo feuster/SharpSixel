@@ -63,6 +63,10 @@ public sealed class Spinner : Widget
     internal int ImageColumns(WidgetEnvironment environment) =>
         (int)Math.Ceiling((double)environment.GetImageHeight(Style.HeightRows) / environment.CellWidth);
 
+    /// <inheritdoc />
+    protected override int MeasureColumns(WidgetEnvironment environment) =>
+        environment.UseSixel ? ImageColumns(environment) + TrailingText().Length : base.MeasureColumns(environment);
+
     internal SixelImage CreateImage(WidgetEnvironment environment)
     {
         int size = environment.GetImageHeight(Style.HeightRows);

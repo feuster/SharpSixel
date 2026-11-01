@@ -2,7 +2,7 @@
  SharpSixelUI / SharpSixel.Ui  -  Terminal widgets drawn as sixel graphics
 ================================================================================
 
- Version : 1.4.1
+ Version : 1.5.0
  Author  : Alexander Feuster
  License : MIT
  Deutsche Version: README.Ui.txt
@@ -25,6 +25,10 @@ customizable. Available widgets:
   * Clock        time: sixel draws an analog clock (face, hour, minute and second hand) with the digital time next to it, ASCII only digital
   * DateDisplay  date: sixel draws a calendar page with the day number and the date text next to it, ASCII only text
   * Tree         hierarchical list with guide lines, optional title as root and collapsible nodes
+  * Rule         separator line, horizontal (optional centered title) or vertical
+  * CheckBox     label with a box (checked or not), focus and disabled state
+  * RadioGroup   radio options, one selected, one focused
+  * HorizontalLayout  places widgets side by side (also usable for nested layouts)
   * ImageView    image fitted into a view of fixed size, optional frame, own
                  background; image as graphic or loaded from a file
   * Prompts      interactive input with validation: Dialog (message with buttons),
@@ -38,7 +42,7 @@ SharpSixel.exe is described in README.en.txt.
 
 2. THE DEMO PROGRAM
 -------------------
-    SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|image|prompts|open|save|osc|demo> [options]
+    SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|rule|checkbox|radio|layout|image|prompts|open|save|osc|demo> [options]
 
   progress    animated progress bar from 0 to 100 %
   spinner     animated spinner
@@ -58,6 +62,14 @@ SharpSixel.exe is described in README.en.txt.
               --radius (corner radius), --border (outline), --fill (page) and --active (day number)
   tree        shows a tree with demo nodes (--caption sets the root title, default "Files"; the collapsed node "tests" is
               marked [+]); --border sets the guide color, --active the title color
+  rule        shows a horizontal rule with a centered title (--caption, default "Section"; --width = length in cells,
+              default the terminal width); --border sets the line color, --active the title color
+  checkbox    shows three check boxes side by side (checked, unchecked + focused, disabled); --caption = label of the
+              first; --active = checked/focus color, --inactive = unchecked marker, --background = graphic background
+  radio       shows a radio group with three options, the second selected and focused (--caption = first label); colors
+              as for checkbox
+  layout      shows a panel, a vertical rule and a radio group side by side (--caption = panel title, default "Status";
+              --border = rule color, --active/--inactive = radio colors)
   image       shows an image fitted into a view: --file (BMP or sixel) or a generated
               demo image; --border adds a frame, --background sets the view background
   prompts     interactive: dialog, selection, multi-selection, text and password (clickable with the mouse)
@@ -70,7 +82,7 @@ SharpSixel.exe is described in README.en.txt.
               color, --background the background color, --active the cursor color (defaults: gold, dark blue, red); the cursor
               style cycles through box, underscore and bar (blinking and static) during --duration seconds; Ctrl+C stops it;
               everything is reset afterwards; needs a terminal, not part of demo
-  demo        progress bar, spinner, status display, bar chart, table, button, then panel, then time, date and tree (default captions "Download"/"Loading"/"Fruit sales"/"Fruit stock"/"Status"/"Files")
+  demo        progress bar, spinner, status display, bar chart, table, button, then panel, then time, date and tree, then rule, check boxes, radio group and layout (default captions "Download"/"Loading"/"Fruit sales"/"Fruit stock"/"Status"/"Files")
 
 Options:
 
@@ -107,6 +119,8 @@ Examples:
     SharpSixelUI clock --caption Time --rows 4 --active #E67E22
     SharpSixelUI date --caption Today --border #3498DB
     SharpSixelUI tree --caption Project --border #3498DB
+    SharpSixelUI rule --caption Options --width 30 --border #3498DB
+    SharpSixelUI layout --caption Status --border #E67E22
     SharpSixelUI image --file logo.bmp --width 30 --rows 8 --border #3498DB --background #101820
     SharpSixelUI prompts --mode ascii
     SharpSixelUI open --dir C:\Images --filter "*.bmp;*.sixel"
@@ -249,6 +263,27 @@ Tree (hierarchical list with guide lines; the title is the root, collapsed nodes
         region.Update(tree);
     }
 
+Rule, CheckBox, RadioGroup and HorizontalLayout (widgets side by side; every child keeps its own frame):
+
+    var panel = new Panel { Title = "Status" };
+    panel.AddLine("Server: online");
+    var group = new RadioGroup { SelectedIndex = 1, FocusedIndex = 1 };
+    group.AddOption("Small");
+    group.AddOption("Medium");
+    var layout = new HorizontalLayout { Spacing = 2 };
+    layout.Add(panel);
+    layout.Add(new Rule { Orientation = RuleOrientation.Vertical, Height = 3 });   // separator between the children
+    layout.Add(group);
+    layout.Add(new CheckBox("Verbose") { Checked = true, Focused = true });
+
+    using (var region = new LiveRegion(Console.Out, env))
+    {
+        region.Begin(layout.GetRows(env));  // rows of the highest child, must not grow later
+        region.Update(layout);
+    }
+
+    new Rule { Title = "Options", Width = 30 }.Render(env);    // horizontal rule: ----- Options -----
+
 Image view (the image is fitted into the view automatically):
 
     var view = new ImageView(40, 10, new ImageViewStyle { ShowBorder = true });
@@ -370,6 +405,15 @@ Types:
   TreeNode            Text, Expanded, Nodes, AddNode(text)
   TreeStyle           LineThickness, CollapsedSuffix, GuideColor, TitleColor,
                       AsciiVertical, AsciiBranch, AsciiLastBranch, AsciiHorizontal
+  Rule                Orientation, Title, Width (null = terminal width, 40 if unknown), Height (vertical), Style
+  RuleStyle           LineThickness, Color, TitleColor, AsciiHorizontal, AsciiVertical
+  CheckBox            Label, Checked, Focused, Enabled, Contains(env, column, row), Style
+  RadioGroup          Options, AddOption(label), SelectedIndex, FocusedIndex, Enabled,
+                      IndexAt(env, column, row), Style
+  ToggleStyle         ActiveColor, InactiveColor, DisabledColor, HighlightColor, BackgroundColor,
+                      AsciiPointer, AsciiCheckOn, AsciiCheckOff, AsciiRadioOn, AsciiRadioOff
+  HorizontalLayout    Children, Add(widget), Spacing
+  Widget (all)        Render(env), GetRows(env), GetColumns(env)
   ImageView           Image, Load(path|stream|bytes), Decoder, AllowUpscale, Columns, Rows, Style
   ImageViewStyle      ShowBorder, BorderColor, BorderThickness, BackgroundColor,
                       AsciiCorner, AsciiHorizontal, AsciiVertical, AsciiRamp
@@ -476,6 +520,24 @@ Types:
     node texts are terminal text after the guides because terminals may erase graphics
     below text, and should fit on one terminal row. ASCII: guides of | + ` - (Ascii*
     properties of the style) with optional ANSI colors for guides and title.
+  * Rule: separator line. Horizontal: one row, Width cells (null = terminal width, 40 if
+    unknown, never wider than the terminal) with an optional centered Title (cut with an
+    ellipsis, dropped if there is no room). Vertical: one cell wide, Height rows. Sixel: pixel
+    line (LineThickness, Color), the cells of the title carry no line; ASCII: - and | (Ascii*
+    properties) with optional ANSI colors.
+  * CheckBox and RadioGroup: draw only; the caller changes Checked / SelectedIndex and
+    Focused / FocusedIndex between frames (Contains / IndexAt turn mouse positions into
+    clicks). Sixel: the same markers as the prompts (rounded box with check mark, ring with
+    dot), the label as terminal text, a bar behind the focused row (HighlightColor, transparent
+    = off). ASCII: [x] / [ ] and (*) / ( ) with a pointer in front of the focused row.
+    Disabled widgets use DisabledColor and show no focus. RadioGroup uses one row per option;
+    the number of options must not grow beyond the rows reserved in a LiveRegion.
+  * HorizontalLayout: places widgets side by side, top aligned, Spacing cells apart; the
+    rows are those of the highest child. A child is as wide as Widget.GetColumns reports and
+    may use the terminal width that is left of its column. Every child draws its own frame,
+    shifted to its column. Children should keep their width between frames. Widget.GetColumns
+    (public) measures the widest row; custom widgets whose sixel frame differs from the
+    ASCII frame override the protected MeasureColumns.
   * ImageView: the view has a fixed size (Columns x Rows cells; sixel image
     Columns * cell width by GetImageHeight(Rows) pixels). The image is fitted into
     the area inside the frame when drawn: aspect ratio kept, centered, enlarged

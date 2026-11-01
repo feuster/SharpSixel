@@ -67,6 +67,12 @@ public sealed class DateDisplay : Widget
     internal int ImageColumns(WidgetEnvironment environment) =>
         (int)Math.Ceiling((double)environment.GetImageHeight(Style.HeightRows) / environment.CellWidth);
 
+    /// <inheritdoc />
+    protected override int MeasureColumns(WidgetEnvironment environment) =>
+        environment.UseSixel
+            ? CaptionPrefix().Length + ImageColumns(environment) + 1 + DateText(false).Length
+            : base.MeasureColumns(environment);
+
     internal SixelImage CreateImage(WidgetEnvironment environment)
     {
         int size = environment.GetImageHeight(Style.HeightRows);

@@ -34,6 +34,9 @@ internal sealed class PromptView : Widget
 
     protected override int AsciiRows => Math.Max(1, Rows.Count);
 
+    protected override int MeasureColumns(WidgetEnvironment environment) =>
+        environment.UseSixel ? ContentColumns() + ExtraRows(Style, environment) : base.MeasureColumns(environment);
+
     protected override string RenderAscii(WidgetEnvironment environment)
     {
         var lines = new string[Rows.Count];
@@ -53,7 +56,7 @@ internal sealed class PromptView : Widget
         var sb = new StringBuilder(AnsiCodes.SaveCursor);
         for (int i = 0; i < SixelRows; i++)
         {
-            sb.Append(AnsiCodes.Down(i)).Append(AnsiCodes.EraseLine).Append(AnsiCodes.RestoreCursor);
+            sb.Append(AnsiCodes.Down(i)).Append(AnsiCodes.EraseLineRest).Append(AnsiCodes.RestoreCursor);
         }
 
         if (NeedsImage())

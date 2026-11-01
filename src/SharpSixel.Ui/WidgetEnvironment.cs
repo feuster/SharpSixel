@@ -50,6 +50,9 @@ public sealed class WidgetEnvironment
     /// </summary>
     public int GetImageHeight(int rows) => Math.Max(6, rows * CellHeight / 6 * 6);
 
+    /// <summary>Copy of this environment with another terminal width (for widgets placed inside a <see cref="HorizontalLayout"/>).</summary>
+    internal WidgetEnvironment WithColumns(int columns) => new WidgetEnvironment(UseSixel, CellWidth, CellHeight, UseAnsi, columns);
+
     /// <summary>Creates an environment from a render mode and the queried terminal capabilities.</summary>
     /// <param name="mode">Requested mode; <see cref="RenderMode.Auto"/> follows <paramref name="terminal"/>.</param>
     /// <param name="terminal">Result of <see cref="SixelTerminal.Query"/>, or null if unknown (then ASCII in Auto mode).</param>

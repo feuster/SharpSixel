@@ -73,7 +73,7 @@ $ SharpSixel encode foto.jpg --show --fit
 - Einzelne, eigenständige Windows-Exe, keine .NET-Installation nötig
 
 **Widgets (`SharpSixel.Ui`, Demo: `SharpSixelUI.exe`)**
-- Terminal-Widgets als Sixel-Grafik mit automatischem ASCII-Fallback: `ProgressBar`, `Spinner`, `StatusDisplay`, `BarChart`, `Table`, `Button`, `Panel`, `Clock`, `DateDisplay`, `Tree`, `ImageView`
+- Terminal-Widgets als Sixel-Grafik mit automatischem ASCII-Fallback: `ProgressBar`, `Spinner`, `StatusDisplay`, `BarChart`, `Table`, `Button`, `Panel`, `Clock`, `DateDisplay`, `Tree`, `Rule`, `CheckBox`, `RadioGroup`, `HorizontalLayout` (Widgets nebeneinander), `ImageView`
 - Interaktive Prompts mit Validierung: `Dialog`, `SelectionPrompt`, `MultiSelectionPrompt`, `TextPrompt`, `OpenFileDialog`, `SaveFileDialog`; Mausunterstützung
 - Anpassbare Stile und Farben, Neuzeichnen an Ort und Stelle mit `LiveRegion`
 
@@ -227,6 +227,9 @@ und Wert-Texte sind normaler Terminaltext neben der Grafik. Das Paket hat die Zi
 | `Panel` | Rahmen um Textzeilen mit optionalem Titel |
 | `Clock`, `DateDisplay` | Analoguhr mit digitaler Zeit; Kalenderblatt mit Datumstext |
 | `Tree` | Hierarchische Liste mit Führungslinien und einklappbaren Knoten |
+| `Rule` | Trennlinie, waagerecht (optional mit Titel) oder senkrecht |
+| `CheckBox`, `RadioGroup` | Kontrollkästchen; Radio-Optionen mit einer Auswahl |
+| `HorizontalLayout` | Ordnet Widgets nebeneinander an |
 | `ImageView` | Bild, eingepasst in eine View fester Größe, optional mit Rahmen und eigenem Hintergrund |
 | Prompts | `Dialog`, `SelectionPrompt<T>`, `MultiSelectionPrompt<T>`, `TextPrompt` mit Validierung, `OpenFileDialog` / `SaveFileDialog` |
 
@@ -262,7 +265,7 @@ string choice = fruit.Show(Console.Out, env);           // validierte Antwort
 Das Demo-Programm `SharpSixelUI.exe` zeigt jedes Widget:
 
 ```
-SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|image|prompts|open|save|osc|demo> [Optionen]
+SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|rule|checkbox|radio|layout|image|prompts|open|save|osc|demo> [Optionen]
 ```
 
 Gemeinsame Optionen: `--mode auto|sixel|ascii`, `--caption <Text>`, `--duration <Sekunden>`, `--rows <n>`, `--no-mouse` und

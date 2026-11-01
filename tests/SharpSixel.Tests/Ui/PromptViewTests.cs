@@ -108,7 +108,7 @@ public class PromptViewTests
         PromptView view = View(new PromptRow { Text = "title" }, Marker(MarkerShape.Radio, Blue, true), new PromptRow());
         string frame = view.Render(SixelEnv);
         Assert.StartsWith("\u001b7", frame);
-        Assert.Contains("\u001b[1B\u001b[2K\u001b8", frame);
+        Assert.Contains("\u001b[1B\u001b[K\u001b8", frame);
         Assert.Contains("\u001b[1B\u001b[3Cx\u001b8", frame);
         Assert.Equal(1, frame.Split(new[] { "\u001bP" }, StringSplitOptions.None).Length - 1);
         Assert.True(frame.IndexOf("\u001bP", StringComparison.Ordinal) < frame.IndexOf("title", StringComparison.Ordinal));

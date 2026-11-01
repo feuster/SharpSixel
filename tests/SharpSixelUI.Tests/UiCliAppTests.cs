@@ -499,6 +499,75 @@ public class UiCliAppTests
     }
 
     [Fact]
+    public void Redirected_Rule_PrintsTitledLine()
+    {
+        Run run = Execute(new[] { "rule" }, false, SixelInfo);
+        Assert.Equal(0, run.Code);
+        Assert.Equal(new string('-', 15) + " Section " + new string('-', 16) + Environment.NewLine, run.Output);
+        Assert.Equal(new string('-', 6) + Environment.NewLine, Execute(new[] { "rule", "--width", "6", "--caption", "" }, false).Output);
+    }
+
+    [Fact]
+    public void Redirected_CheckBox_PrintsThreeBoxesSideBySide()
+    {
+        Run run = Execute(new[] { "checkbox" }, false, SixelInfo);
+        Assert.Equal(0, run.Code);
+        Assert.Equal("  [x] Enabled  > [ ] Verbose    [x] Locked" + Environment.NewLine, run.Output);
+    }
+
+    [Fact]
+    public void Redirected_Radio_PrintsGroupWithSecondSelected()
+    {
+        Run run = Execute(new[] { "radio", "--caption", "Tiny" }, false, SixelInfo);
+        Assert.Equal(0, run.Code);
+        Assert.Equal(string.Join(Environment.NewLine, "  ( ) Tiny", "> (*) Medium", "  ( ) Large") + Environment.NewLine, run.Output);
+    }
+
+    [Fact]
+    public void Redirected_Layout_PrintsPanelRuleAndRadioSideBySide()
+    {
+        Run run = Execute(new[] { "layout" }, false, SixelInfo);
+        Assert.Equal(0, run.Code);
+        string[] lines = run.Output.TrimEnd().Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+        Assert.Equal(5, lines.Length);
+        Assert.StartsWith("+- Status -", lines[0], StringComparison.Ordinal);
+        Assert.EndsWith("|    ( ) Small", lines[0].TrimEnd(), StringComparison.Ordinal);
+        Assert.Equal("| Server: online |  |  > (*) Medium", lines[1]);
+        Assert.EndsWith("|    ( ) Large", lines[2].TrimEnd(), StringComparison.Ordinal);
+        Assert.StartsWith("+----------------+  |", lines[4], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Terminal_Layout_DrawsSixelFrameAndRestoresCursor()
+    {
+        Run sixel = Execute(new[] { "layout" }, true, SixelInfo);
+        Assert.Equal(0, sixel.Code);
+        Assert.Equal(0, sixel.Delays);
+        Assert.Contains("\u001bP", sixel.Output, StringComparison.Ordinal);
+        Assert.EndsWith("\u001b[?25h", sixel.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("\u001bP", Execute(new[] { "layout" }, true, NoSixelInfo).Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Demo_ShowsRuleCheckBoxRadioAndLayout()
+    {
+        Run run = Execute(new[] { "demo", "--mode", "ascii", "--duration", "1", "--no-ansi" }, true);
+        Assert.Equal(0, run.Code);
+        Assert.Contains(" Section ", run.Output, StringComparison.Ordinal);
+        Assert.Contains("[x] Enabled", run.Output, StringComparison.Ordinal);
+        Assert.Contains("> (*) Medium", run.Output, StringComparison.Ordinal);
+        Assert.Contains("|  |  ", run.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InvalidRuleWidth_FailsWithoutCrash()
+    {
+        Run run = Execute(new[] { "rule", "--width", "0" }, false);
+        Assert.Equal(1, run.Code);
+        Assert.NotEqual(string.Empty, run.Error);
+    }
+
+    [Fact]
     public void Colors_AreAppliedToAsciiWidgets()
     {
         string colored = Execute(new[] { "progress", "--mode", "ascii", "--duration", "1", "--fill", "#FF0000" }, true).Output;

@@ -31,6 +31,20 @@ public abstract class Widget
         return environment.UseSixel ? RenderSixel(environment) : RenderAscii(environment);
     }
 
+    /// <summary>
+    /// Width in terminal cells of the widest row in the given environment; used to place widgets side by side
+    /// (see <see cref="HorizontalLayout"/>). Text is assumed to occupy one cell per char.
+    /// </summary>
+    public int GetColumns(WidgetEnvironment environment)
+    {
+        if (environment == null)
+        {
+            throw new ArgumentNullException(nameof(environment));
+        }
+
+        return MeasureColumns(environment);
+    }
+
     /// <summary>Rows occupied in sixel mode.</summary>
     protected abstract int SixelRows { get; }
 
@@ -42,4 +56,19 @@ public abstract class Widget
 
     /// <summary>Renders the sixel frame.</summary>
     protected abstract string RenderSixel(WidgetEnvironment environment);
+
+    /// <summary>
+    /// Measures the width in cells. The default is the widest line of the ASCII frame (ANSI sequences do not count); widgets whose
+    /// sixel frame has another width override it.
+    /// </summary>
+    protected virtual int MeasureColumns(WidgetEnvironment environment)
+    {
+        int columns = 0;
+        foreach (string line in RenderAscii(environment).Split('\n'))
+        {
+            columns = Math.Max(columns, TextFit.VisibleLength(line));
+        }
+
+        return columns;
+    }
 }

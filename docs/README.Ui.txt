@@ -2,7 +2,7 @@
  SharpSixelUI / SharpSixel.Ui  -  Terminal-Widgets als Sixel-Grafik
 ================================================================================
 
- Version : 1.4.1
+ Version : 1.5.0
  Autor   : Alexander Feuster
  Lizenz  : MIT
  English version: README.Ui.en.txt
@@ -25,6 +25,10 @@ Farben sind anpassbar. Verfügbare Widgets:
   * Clock        Uhrzeit: Sixel als Analoguhr (Ziffernblatt, Stunden-, Minuten- und Sekundenzeiger) mit digitaler Zeit daneben, ASCII nur digital
   * DateDisplay  Datum: Sixel als Kalenderblatt mit Tagesnummer und Datumstext daneben, ASCII nur Text
   * Tree         Hierarchische Liste mit Führungslinien, optionalem Titel als Wurzel und einklappbaren Knoten
+  * Rule         Trennlinie, waagerecht (optional mit zentriertem Titel) oder senkrecht
+  * CheckBox     Beschriftung mit Kästchen (angehakt oder nicht), Fokus- und Deaktiviert-Zustand
+  * RadioGroup   Radio-Optionen, eine ausgewählt, eine fokussiert
+  * HorizontalLayout  ordnet Widgets nebeneinander an (auch verschachtelbar)
   * ImageView    Bild, das in eine View fester Größe eingepasst wird; optionaler
                  Rahmen, eigener Hintergrund; Bild als Grafik oder aus einer Datei
   * Prompts      interaktive Eingabe mit Validierung: Dialog (Meldung mit Buttons),
@@ -38,7 +42,7 @@ SharpSixel.exe ist in README.txt beschrieben.
 
 2. DAS DEMO-PROGRAMM
 --------------------
-    SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|image|prompts|open|save|osc|demo> [Optionen]
+    SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|rule|checkbox|radio|layout|image|prompts|open|save|osc|demo> [Optionen]
 
   progress    animierte ProgressBar von 0 bis 100 %
   spinner     animierter Spinner
@@ -58,6 +62,15 @@ SharpSixel.exe ist in README.txt beschrieben.
               --radius (Eckenradius), --border (Rahmen), --fill (Blatt) und --active (Tagesnummer)
   tree        zeigt einen Baum mit Demo-Knoten (--caption setzt den Titel der Wurzel, Standard "Files"; der eingeklappte
               Knoten "tests" ist mit [+] markiert); --border setzt die Farbe der Führungslinien, --active die Titelfarbe
+  rule        zeigt eine waagerechte Trennlinie mit zentriertem Titel (--caption, Standard "Section"; --width = Länge in
+              Zellen, Standard die Terminalbreite); --border setzt die Linienfarbe, --active die Titelfarbe
+  checkbox    zeigt drei Kontrollkästchen nebeneinander (angehakt, nicht angehakt + fokussiert, deaktiviert); --caption =
+              Beschriftung des ersten; --active = Farbe für angehakt/Fokus, --inactive = Marker ohne Haken, --background =
+              Hintergrund der Grafik
+  radio       zeigt eine Radiogruppe mit drei Optionen, die zweite ausgewählt und fokussiert (--caption = erste
+              Beschriftung); Farben wie bei checkbox
+  layout      zeigt ein Panel, eine senkrechte Trennlinie und eine Radiogruppe nebeneinander (--caption = Panel-Titel,
+              Standard "Status"; --border = Linienfarbe, --active/--inactive = Farben der Radiogruppe)
   image       zeigt ein Bild eingepasst in eine View: --file (BMP oder Sixel) oder ein
               erzeugtes Demo-Bild; --border zeichnet einen Rahmen, --background setzt
               den Hintergrund der View
@@ -72,7 +85,7 @@ SharpSixel.exe ist in README.txt beschrieben.
               Textfarbe, --background die Hintergrundfarbe, --active die Cursorfarbe (Standard: Gold, Dunkelblau, Rot); der
               Cursorstil durchläuft Block, Unterstrich und Balken (blinkend und statisch) während --duration Sekunden;
               Strg+C bricht ab; danach wird alles zurückgesetzt; braucht ein Terminal, nicht Teil von demo
-  demo        ProgressBar, Spinner, Statusanzeige, Balkendiagramm, Tabelle, Button, Panel, danach Uhrzeit, Datum und Baum (Standard-Captions "Download"/"Loading"/"Fruit sales"/"Fruit stock"/"Status"/"Files")
+  demo        ProgressBar, Spinner, Statusanzeige, Balkendiagramm, Tabelle, Button, Panel, danach Uhrzeit, Datum und Baum, danach Trennlinie, Kontrollkästchen, Radiogruppe und Layout (Standard-Captions "Download"/"Loading"/"Fruit sales"/"Fruit stock"/"Status"/"Files")
 
 Optionen:
 
@@ -109,6 +122,8 @@ Beispiele:
     SharpSixelUI clock --caption Zeit --rows 4 --active #E67E22
     SharpSixelUI date --caption Heute --border #3498DB
     SharpSixelUI tree --caption Projekt --border #3498DB
+    SharpSixelUI rule --caption Optionen --width 30 --border #3498DB
+    SharpSixelUI layout --caption Status --border #E67E22
     SharpSixelUI image --file logo.bmp --width 30 --rows 8 --border #3498DB --background #101820
     SharpSixelUI prompts --mode ascii
     SharpSixelUI open --dir C:\Images --filter "*.bmp;*.sixel"
@@ -251,6 +266,27 @@ Baum (hierarchische Liste mit Führungslinien; der Titel ist die Wurzel, eingekl
         region.Update(tree);
     }
 
+Rule, CheckBox, RadioGroup und HorizontalLayout (Widgets nebeneinander; jedes Kind behält seinen eigenen Frame):
+
+    var panel = new Panel { Title = "Status" };
+    panel.AddLine("Server: online");
+    var group = new RadioGroup { SelectedIndex = 1, FocusedIndex = 1 };
+    group.AddOption("Small");
+    group.AddOption("Medium");
+    var layout = new HorizontalLayout { Spacing = 2 };
+    layout.Add(panel);
+    layout.Add(new Rule { Orientation = RuleOrientation.Vertical, Height = 3 });   // Trennlinie zwischen den Kindern
+    layout.Add(group);
+    layout.Add(new CheckBox("Verbose") { Checked = true, Focused = true });
+
+    using (var region = new LiveRegion(Console.Out, env))
+    {
+        region.Begin(layout.GetRows(env));  // Zeilen des höchsten Kindes, darf später nicht wachsen
+        region.Update(layout);
+    }
+
+    new Rule { Title = "Optionen", Width = 30 }.Render(env);   // waagerechte Linie: ----- Optionen -----
+
 Bildanzeige (das Bild wird automatisch in die View eingepasst):
 
     var view = new ImageView(40, 10, new ImageViewStyle { ShowBorder = true });
@@ -372,6 +408,15 @@ Typen:
   TreeNode            Text, Expanded, Nodes, AddNode(text)
   TreeStyle           LineThickness, CollapsedSuffix, GuideColor, TitleColor,
                       AsciiVertical, AsciiBranch, AsciiLastBranch, AsciiHorizontal
+  Rule                Orientation, Title, Width (null = Terminalbreite, 40 wenn unbekannt), Height (senkrecht), Style
+  RuleStyle           LineThickness, Color, TitleColor, AsciiHorizontal, AsciiVertical
+  CheckBox            Label, Checked, Focused, Enabled, Contains(env, column, row), Style
+  RadioGroup          Options, AddOption(label), SelectedIndex, FocusedIndex, Enabled,
+                      IndexAt(env, column, row), Style
+  ToggleStyle         ActiveColor, InactiveColor, DisabledColor, HighlightColor, BackgroundColor,
+                      AsciiPointer, AsciiCheckOn, AsciiCheckOff, AsciiRadioOn, AsciiRadioOff
+  HorizontalLayout    Children, Add(widget), Spacing
+  Widget (alle)       Render(env), GetRows(env), GetColumns(env)
   ImageView           Image, Load(Pfad|Stream|Bytes), Decoder, AllowUpscale, Columns, Rows, Style
   ImageViewStyle      ShowBorder, BorderColor, BorderThickness, BackgroundColor,
                       AsciiCorner, AsciiHorizontal, AsciiVertical, AsciiRamp
@@ -484,6 +529,26 @@ Typen:
     Knotentexte stehen als Terminaltext hinter den Führungslinien, weil Terminals Grafik
     unter Text teils löschen, und sollten in eine Terminalzeile passen. ASCII: Führung aus
     | + ` - (Ascii*-Eigenschaften des Styles) mit optionalen ANSI-Farben für Linien und Titel.
+  * Rule: Trennlinie. Waagerecht: eine Zeile, Width Zellen (null = Terminalbreite, 40 wenn
+    unbekannt, nie breiter als das Terminal) mit optionalem zentriertem Title (mit Auslassungs-
+    zeichen gekürzt, entfällt ohne Platz). Senkrecht: eine Zelle breit, Height Zeilen. Sixel:
+    Pixellinie (LineThickness, Color), die Zellen des Titels tragen keine Linie; ASCII: - und |
+    (Ascii*-Eigenschaften) mit optionalen ANSI-Farben.
+  * CheckBox und RadioGroup: zeichnen nur; der Aufrufer ändert Checked / SelectedIndex und
+    Focused / FocusedIndex zwischen den Frames (Contains / IndexAt wandeln Mauspositionen in
+    Klicks um). Sixel: dieselben Marker wie bei den Prompts (abgerundetes Kästchen mit Haken,
+    Ring mit Punkt), die Beschriftung als Terminaltext, ein Balken hinter der fokussierten Zeile
+    (HighlightColor, transparent = aus). ASCII: [x] / [ ] und (*) / ( ) mit einem Zeiger vor der
+    fokussierten Zeile. Deaktivierte Widgets nutzen DisabledColor und zeigen keinen Fokus.
+    RadioGroup belegt eine Zeile je Option; die Optionszahl darf nach LiveRegion.Begin nicht über
+    die reservierten Zeilen hinaus wachsen.
+  * HorizontalLayout: ordnet Widgets nebeneinander an, oben ausgerichtet, Spacing Zellen
+    Abstand; die Zeilenzahl ist die des höchsten Kindes. Ein Kind ist so breit, wie
+    Widget.GetColumns meldet, und darf die Terminalbreite rechts von seiner Spalte nutzen.
+    Jedes Kind zeichnet seinen eigenen Frame, in seine Spalte verschoben. Kinder sollten ihre
+    Breite zwischen den Frames behalten. Widget.GetColumns (öffentlich) misst die breiteste
+    Zeile; eigene Widgets, deren Sixel-Frame vom ASCII-Frame abweicht, überschreiben das
+    geschützte MeasureColumns.
   * ImageView: Die View hat eine feste Größe (Columns x Rows Zellen; Sixel-Bild
     Columns * Zellbreite mal GetImageHeight(Rows) Pixel). Das Bild wird beim
     Zeichnen in die Fläche innerhalb des Rahmens eingepasst: Seitenverhältnis

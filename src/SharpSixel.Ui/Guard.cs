@@ -4,6 +4,21 @@ namespace SharpSixel.Ui;
 
 internal static class Guard
 {
+    public static string NotEmpty(string value, string name)
+    {
+        if (value == null)
+        {
+            throw new ArgumentNullException(name);
+        }
+
+        if (value.Length == 0)
+        {
+            throw new ArgumentException("The value must not be empty.", name);
+        }
+
+        return value;
+    }
+
     public static int AtLeast(int value, int min, string name)
     {
         if (value < min)

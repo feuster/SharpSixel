@@ -9,7 +9,9 @@ namespace SharpSixel.Ui;
 /// Places widgets side by side (top aligned), <see cref="Spacing"/> cells apart. Each child is drawn with its own frame, shifted
 /// to its column; the width of a child is <see cref="Widget.GetColumns"/>, and a child may use the terminal width that is left
 /// of its column. The rows are those of the highest child; the number of rows must not grow beyond the rows reserved in a
-/// <see cref="LiveRegion"/>. Children should keep their width between frames, otherwise the following children move.
+/// <see cref="LiveRegion"/>. A child with a fixed width (<see cref="Add(Widget, int)"/>) keeps its column even if its content changes, and is
+/// offered exactly that width; other children should keep their width between frames, otherwise the following children move.
+/// A <see cref="Rule"/> with a vertical orientation and no height stretches to the rows of the layout.
 /// A layout may contain layouts, but not itself.
 /// </summary>
 public sealed class HorizontalLayout : Widget
@@ -17,12 +19,13 @@ public sealed class HorizontalLayout : Widget
     private static readonly WidgetEnvironment SixelProbe = new WidgetEnvironment(true);
     private static readonly WidgetEnvironment AsciiProbe = new WidgetEnvironment(false);
     private readonly Collection<Widget> _children;
+    private readonly Dictionary<Widget, int> _widths = new Dictionary<Widget, int>();
     private int _spacing = 2;
 
     /// <summary>Creates an empty layout.</summary>
     public HorizontalLayout()
     {
-        _children = new ChildCollection(this);
+        _children = new LayoutChildren(this, child => _widths.Remove(child));
     }
 
     /// <summary>The widgets from left to right (null entries are rejected).</summary>
@@ -38,6 +41,17 @@ public sealed class HorizontalLayout : Widget
     /// <summary>Adds a widget at the right end.</summary>
     public void Add(Widget child) => _children.Add(child);
 
+    /// <summary>
+    /// Adds a widget at the right end with a fixed width in cells (at least 1): the child keeps its column when its content changes,
+    /// is offered this width (a <see cref="Rule"/> without width fills it) and should not draw wider.
+    /// </summary>
+    public void Add(Widget child, int width)
+    {
+        Guard.AtLeast(width, 1, nameof(width));
+        _children.Add(child);
+        _widths[child] = width;
+    }
+
     /// <inheritdoc />
     protected override int SixelRows => RowsFor(SixelProbe);
 
@@ -47,21 +61,21 @@ public sealed class HorizontalLayout : Widget
     /// <inheritdoc />
     protected override int MeasureColumns(WidgetEnvironment environment)
     {
-        List<Slot> slots = Place(environment);
+        List<Slot> slots = Place(environment, 0);
         return slots.Count == 0 ? 0 : slots[slots.Count - 1].Offset + slots[slots.Count - 1].Width;
     }
 
     /// <inheritdoc />
     protected override string RenderAscii(WidgetEnvironment environment)
     {
-        int rows = AsciiRows;
+        int rows = Math.Max(AsciiRows, environment.Rows);
         var lines = new StringBuilder[rows];
         for (int row = 0; row < rows; row++)
         {
             lines[row] = new StringBuilder();
         }
 
-        List<Slot> slots = Place(environment);
+        List<Slot> slots = Place(environment, rows);
         for (int i = 0; i < slots.Count; i++)
         {
             Slot slot = slots[i];
@@ -88,7 +102,7 @@ public sealed class HorizontalLayout : Widget
     {
         var sb = new StringBuilder();
         int cursor = 0;
-        foreach (Slot slot in Place(environment))
+        foreach (Slot slot in Place(environment, Math.Max(SixelRows, environment.Rows)))
         {
             // Every child frame saves the cursor where it starts and ends there again.
             sb.Append(AnsiCodes.Forward(slot.Offset - cursor)).Append(slot.Widget.Render(slot.Environment));
@@ -110,15 +124,21 @@ public sealed class HorizontalLayout : Widget
         return rows;
     }
 
-    private List<Slot> Place(WidgetEnvironment environment)
+    private List<Slot> Place(WidgetEnvironment environment, int rows)
     {
         var slots = new List<Slot>();
         int offset = 0;
         foreach (Widget child in _children)
         {
             int available = environment.Columns > 0 ? Math.Max(1, environment.Columns - offset) : 0;
-            WidgetEnvironment childEnvironment = environment.WithColumns(available);
-            int width = child.GetColumns(childEnvironment);
+            bool fixedWidth = _widths.TryGetValue(child, out int wanted);
+            if (fixedWidth)
+            {
+                available = available > 0 ? Math.Min(available, wanted) : wanted;
+            }
+
+            WidgetEnvironment childEnvironment = environment.WithSpace(available, rows);
+            int width = fixedWidth ? wanted : child.GetColumns(childEnvironment);
             slots.Add(new Slot(child, childEnvironment, offset, width));
             offset += width + _spacing;
         }
@@ -143,31 +163,5 @@ public sealed class HorizontalLayout : Widget
         public int Offset { get; }
 
         public int Width { get; }
-    }
-
-    private sealed class ChildCollection : Collection<Widget>
-    {
-        private readonly HorizontalLayout _owner;
-
-        public ChildCollection(HorizontalLayout owner) => _owner = owner;
-
-        protected override void InsertItem(int index, Widget item) => base.InsertItem(index, Check(item));
-
-        protected override void SetItem(int index, Widget item) => base.SetItem(index, Check(item));
-
-        private Widget Check(Widget item)
-        {
-            if (item == null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
-
-            if (ReferenceEquals(item, _owner))
-            {
-                throw new ArgumentException("A layout cannot contain itself.", nameof(item));
-            }
-
-            return item;
-        }
     }
 }

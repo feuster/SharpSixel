@@ -110,6 +110,48 @@ public class HorizontalLayoutTests
     }
 
     [Fact]
+    public void FixedWidth_KeepsColumnAndOffersTheWidth()
+    {
+        var layout = new HorizontalLayout();
+        layout.Add(new CheckBox("Hi"), 12);
+        layout.Add(new Button("OK"));
+        Assert.Equal("  [ ] Hi" + new string(' ', 6) + "[ OK ]", layout.Render(Plain));
+        Assert.Equal(20, layout.GetColumns(Plain));
+        Assert.Contains("\u001b8\u001b[14C\u001b7", layout.Render(SixelEnv), StringComparison.Ordinal);
+
+        var filled = new HorizontalLayout();
+        filled.Add(new Rule(), 5);
+        filled.Add(new Button("OK"));
+        Assert.Equal("-----  [ OK ]", filled.Render(Plain));
+    }
+
+    [Fact]
+    public void FixedWidth_IsForgottenWhenChildIsRemoved()
+    {
+        var box = new CheckBox("Hi");
+        var layout = new HorizontalLayout();
+        layout.Add(box, 12);
+        layout.Children.Clear();
+        layout.Add(box);
+        Assert.Equal(8, layout.GetColumns(Plain));
+        Assert.Throws<ArgumentOutOfRangeException>(() => layout.Add(box, 0));
+    }
+
+    [Fact]
+    public void VerticalRuleWithoutHeight_StretchesToLayoutRows()
+    {
+        var panel = new Panel();
+        panel.AddLine("ab");
+        var layout = new HorizontalLayout();
+        layout.Add(panel);
+        layout.Add(new Rule { Orientation = RuleOrientation.Vertical });
+        Assert.Equal("+----+  |\n| ab |  |\n+----+  |", layout.Render(Plain));
+        Assert.Equal(3, layout.GetRows(SixelEnv));
+        Assert.Contains("\u001b[2B\u001b[1X", layout.Render(SixelEnv), StringComparison.Ordinal);
+        Assert.Equal(1, new Rule { Orientation = RuleOrientation.Vertical }.GetRows(Plain));
+    }
+
+    [Fact]
     public void Empty_RendersNothing()
     {
         var layout = new HorizontalLayout();

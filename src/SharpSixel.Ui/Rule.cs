@@ -15,7 +15,7 @@ public sealed class Rule : Widget
     private const int DefaultWidth = 40;
     private const int TitleMargin = 4;
     private int? _width;
-    private int _height = 1;
+    private int? _height;
 
     /// <summary>Creates a rule with the default style.</summary>
     public Rule()
@@ -56,20 +56,33 @@ public sealed class Rule : Widget
         }
     }
 
-    /// <summary>Length of a vertical rule in rows (at least 1). Default 1.</summary>
-    public int Height
+    /// <summary>
+    /// Length of a vertical rule in rows (at least 1). Null (default) stretches it to the height of the layout it is placed in,
+    /// or 1 row if there is none.
+    /// </summary>
+    public int? Height
     {
         get => _height;
-        set => _height = Guard.AtLeast(value, 1, nameof(value));
+        set
+        {
+            if (value.HasValue)
+            {
+                Guard.AtLeast(value.Value, 1, nameof(value));
+            }
+
+            _height = value;
+        }
     }
 
     private bool Vertical => Orientation == RuleOrientation.Vertical;
 
     /// <inheritdoc />
-    protected override int SixelRows => Vertical ? _height : 1;
+    protected override int SixelRows => Vertical ? _height ?? 1 : 1;
 
     /// <inheritdoc />
     protected override int AsciiRows => SixelRows;
+
+    internal override bool FillsWidth => !Vertical && _width == null;
 
     /// <inheritdoc />
     protected override string RenderAscii(WidgetEnvironment environment)
@@ -78,7 +91,7 @@ public sealed class Rule : Widget
         if (Vertical)
         {
             string line = Tint(Style.AsciiVertical.ToString(), Style.Color, ansi);
-            return Repeat(line, _height);
+            return Repeat(line, VerticalRows(environment));
         }
 
         int columns = Columns(environment);
@@ -100,7 +113,8 @@ public sealed class Rule : Widget
     {
         int columns = Vertical ? 1 : Columns(environment);
         var sb = new StringBuilder(AnsiCodes.SaveCursor);
-        for (int row = 0; row < SixelRows; row++)
+        int rows = Vertical ? VerticalRows(environment) : 1;
+        for (int row = 0; row < rows; row++)
         {
             sb.Append(AnsiCodes.Down(row)).Append(AnsiCodes.EraseChars(columns)).Append(AnsiCodes.RestoreCursor);
         }
@@ -125,7 +139,7 @@ public sealed class Rule : Widget
         int thickness = Style.LineThickness;
         if (Vertical)
         {
-            var vertical = new SixelImage(cellWidth, environment.GetImageHeight(_height));
+            var vertical = new SixelImage(cellWidth, environment.GetImageHeight(VerticalRows(environment)));
             Raster.FillRoundedRect(vertical, (cellWidth - thickness) / 2, 0, thickness, vertical.Height, 0, Style.Color);
             return vertical;
         }
@@ -143,6 +157,8 @@ public sealed class Rule : Widget
 
         return image;
     }
+
+    private int VerticalRows(WidgetEnvironment environment) => _height ?? Math.Max(1, environment.Rows);
 
     private static string Repeat(string line, int count)
     {

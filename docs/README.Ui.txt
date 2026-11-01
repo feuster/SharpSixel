@@ -28,7 +28,8 @@ Farben sind anpassbar. Verfügbare Widgets:
   * Rule         Trennlinie, waagerecht (optional mit zentriertem Titel) oder senkrecht
   * CheckBox     Beschriftung mit Kästchen (angehakt oder nicht), Fokus- und Deaktiviert-Zustand
   * RadioGroup   Radio-Optionen, eine ausgewählt, eine fokussiert
-  * HorizontalLayout  ordnet Widgets nebeneinander an (auch verschachtelbar)
+  * HorizontalLayout  ordnet Widgets nebeneinander an (optional mit festen Spaltenbreiten)
+  * VerticalLayout    ordnet Widgets untereinander an (verschachtelbar, eine Rule füllt die Breite)
   * ImageView    Bild, das in eine View fester Größe eingepasst wird; optionaler
                  Rahmen, eigener Hintergrund; Bild als Grafik oder aus einer Datei
   * Prompts      interaktive Eingabe mit Validierung: Dialog (Meldung mit Buttons),
@@ -69,8 +70,9 @@ SharpSixel.exe ist in README.txt beschrieben.
               Hintergrund der Grafik
   radio       zeigt eine Radiogruppe mit drei Optionen, die zweite ausgewählt und fokussiert (--caption = erste
               Beschriftung); Farben wie bei checkbox
-  layout      zeigt ein Panel, eine senkrechte Trennlinie und eine Radiogruppe nebeneinander (--caption = Panel-Titel,
-              Standard "Status"; --border = Linienfarbe, --active/--inactive = Farben der Radiogruppe)
+  layout      zeigt ein Panel, eine senkrechte Trennlinie (auf die Höhe gestreckt) und eine Spalte aus Radiogruppe,
+              Trennlinie und Kontrollkästchen nebeneinander (--caption = Panel-Titel, Standard "Status";
+              --border = Linienfarbe, --active/--inactive = Farben der Radiogruppe/des Kästchens)
   image       zeigt ein Bild eingepasst in eine View: --file (BMP oder Sixel) oder ein
               erzeugtes Demo-Bild; --border zeichnet einen Rahmen, --background setzt
               den Hintergrund der View
@@ -275,7 +277,7 @@ Rule, CheckBox, RadioGroup und HorizontalLayout (Widgets nebeneinander; jedes Ki
     group.AddOption("Medium");
     var layout = new HorizontalLayout { Spacing = 2 };
     layout.Add(panel);
-    layout.Add(new Rule { Orientation = RuleOrientation.Vertical, Height = 3 });   // Trennlinie zwischen den Kindern
+    layout.Add(new Rule { Orientation = RuleOrientation.Vertical });   // Trennlinie, streckt sich auf die Layout-Höhe
     layout.Add(group);
     layout.Add(new CheckBox("Verbose") { Checked = true, Focused = true });
 
@@ -408,14 +410,15 @@ Typen:
   TreeNode            Text, Expanded, Nodes, AddNode(text)
   TreeStyle           LineThickness, CollapsedSuffix, GuideColor, TitleColor,
                       AsciiVertical, AsciiBranch, AsciiLastBranch, AsciiHorizontal
-  Rule                Orientation, Title, Width (null = Terminalbreite, 40 wenn unbekannt), Height (senkrecht), Style
+  Rule                Orientation, Title, Width (null = Terminalbreite, 40 wenn unbekannt), Height (senkrecht; null = auf die Layout-Höhe strecken), Style
   RuleStyle           LineThickness, Color, TitleColor, AsciiHorizontal, AsciiVertical
   CheckBox            Label, Checked, Focused, Enabled, Contains(env, column, row), Style
   RadioGroup          Options, AddOption(label), SelectedIndex, FocusedIndex, Enabled,
                       IndexAt(env, column, row), Style
   ToggleStyle         ActiveColor, InactiveColor, DisabledColor, HighlightColor, BackgroundColor,
                       AsciiPointer, AsciiCheckOn, AsciiCheckOff, AsciiRadioOn, AsciiRadioOff
-  HorizontalLayout    Children, Add(widget), Spacing
+  HorizontalLayout    Children, Add(widget), Add(widget, width), Spacing
+  VerticalLayout      Children, Add(widget), Spacing
   Widget (alle)       Render(env), GetRows(env), GetColumns(env)
   ImageView           Image, Load(Pfad|Stream|Bytes), Decoder, AllowUpscale, Columns, Rows, Style
   ImageViewStyle      ShowBorder, BorderColor, BorderThickness, BackgroundColor,
@@ -531,7 +534,7 @@ Typen:
     | + ` - (Ascii*-Eigenschaften des Styles) mit optionalen ANSI-Farben für Linien und Titel.
   * Rule: Trennlinie. Waagerecht: eine Zeile, Width Zellen (null = Terminalbreite, 40 wenn
     unbekannt, nie breiter als das Terminal) mit optionalem zentriertem Title (mit Auslassungs-
-    zeichen gekürzt, entfällt ohne Platz). Senkrecht: eine Zelle breit, Height Zeilen. Sixel:
+    zeichen gekürzt, entfällt ohne Platz). Senkrecht: eine Zelle breit, Height Zeilen (null = Höhe des HorizontalLayouts, sonst 1). Sixel:
     Pixellinie (LineThickness, Color), die Zellen des Titels tragen keine Linie; ASCII: - und |
     (Ascii*-Eigenschaften) mit optionalen ANSI-Farben.
   * CheckBox und RadioGroup: zeichnen nur; der Aufrufer ändert Checked / SelectedIndex und
@@ -545,10 +548,16 @@ Typen:
   * HorizontalLayout: ordnet Widgets nebeneinander an, oben ausgerichtet, Spacing Zellen
     Abstand; die Zeilenzahl ist die des höchsten Kindes. Ein Kind ist so breit, wie
     Widget.GetColumns meldet, und darf die Terminalbreite rechts von seiner Spalte nutzen.
-    Jedes Kind zeichnet seinen eigenen Frame, in seine Spalte verschoben. Kinder sollten ihre
-    Breite zwischen den Frames behalten. Widget.GetColumns (öffentlich) misst die breiteste
+    Jedes Kind zeichnet seinen eigenen Frame, in seine Spalte verschoben. Ein Kind kann mit Add(widget, width) eine feste
+    Breite bekommen: es behält dann seine Spalte, wenn sich sein Inhalt ändert, und eine Rule ohne Width füllt sie.
+    Andere Kinder sollten ihre Breite zwischen den Frames behalten. Eine senkrechte Rule ohne Height streckt sich
+    auf die Zeilen des Layouts. Widget.GetColumns (öffentlich) misst die breiteste
     Zeile; eigene Widgets, deren Sixel-Frame vom ASCII-Frame abweicht, überschreiben das
     geschützte MeasureColumns.
+  * VerticalLayout: ordnet Widgets untereinander an, linksbündig, Spacing leere Zeilen Abstand; die Zeilenzahl ist die
+    Summe der Kinder, die Breite die des breitesten Kindes. Eine waagerechte Rule ohne Width füllt diese Breite. Als
+    Kind eines HorizontalLayouts bildet es eine Spalte. Die Zeilenzahl darf nach LiveRegion.Begin nicht über die
+    reservierten Zeilen hinaus wachsen.
   * ImageView: Die View hat eine feste Größe (Columns x Rows Zellen; Sixel-Bild
     Columns * Zellbreite mal GetImageHeight(Rows) Pixel). Das Bild wird beim
     Zeichnen in die Fläche innerhalb des Rahmens eingepasst: Seitenverhältnis

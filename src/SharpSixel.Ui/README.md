@@ -2,8 +2,8 @@
 
 Terminal UI widgets drawn as sixel graphics, with automatic ASCII fallback. No dependencies except `SharpSixel`.
 
-- `ProgressBar` (optional caption and percent/fraction text)
-- `Spinner` and `StatusDisplay`: spinner with changeable status text for work of unknown duration (`Start`, `Text`, `WriteLine`, `Refresh`, `Stop`; timer animation or manual refresh)
+  `ProgressBar` (optional caption and percent/fraction text)
+  `Spinner` and `StatusDisplay`: spinner with changeable status text for work of unknown duration (`Start`, `Text`, `WriteLine`, `Refresh`, `Stop`; timer animation or manual refresh)
 - `BarChart`: horizontal bar chart with labels, values, per-item colors and optional caption (`Add`, `Items`, `Maximum`, `ShowValues`; one ASCII line per bar)
 - `Table`: table with column headers, aligned text cells and a grid, optional caption (`AddColumn`, `AddRow`, `Columns`, `Rows`; `TableColumn.Width`, `TableAlignment`; sixel: pixel-line grid, ASCII: `+ - |` grid; same rows in both modes)
 - `Button`: label with a visual `State` (`Normal`, `Focused`, `Pressed`, `Disabled`); sixel: rounded face per state with the label on it, ASCII: `[ OK ]` with state markers (`[>OK<]`, `[#OK#]`, `[-OK-]`); draws only, the caller changes `State` between frames

@@ -71,7 +71,7 @@ $ SharpSixel encode photo.jpg --show --fit
 - Single-file, self-contained Windows executable, no .NET installation needed
 
 **Widgets (`SharpSixel.Ui`, demo: `SharpSixelUI.exe`)**
-- Terminal widgets drawn as sixel graphics with automatic ASCII fallback: `ProgressBar`, `Spinner`, `StatusDisplay`, `BarChart`, `Table`, `Button`, `Panel`, `Clock`, `DateDisplay`, `Tree`, `Rule`, `CheckBox`, `RadioGroup`, `HorizontalLayout` (widgets side by side), `ImageView`
+- Terminal widgets drawn as sixel graphics with automatic ASCII fallback: `ProgressBar`, `Spinner`, `StatusDisplay`, `BarChart`, `Table`, `Button`, `Panel`, `Clock`, `DateDisplay`, `Tree`, `Rule`, `CheckBox`, `RadioGroup`, `HorizontalLayout` / `VerticalLayout` (widgets side by side / stacked), `ImageView`
 - Interactive prompts with validation: `Dialog`, `SelectionPrompt`, `MultiSelectionPrompt`, `TextPrompt`, `OpenFileDialog`, `SaveFileDialog`; mouse support
 - Customizable styles and colors, in-place redraw with `LiveRegion`
 
@@ -225,7 +225,7 @@ on `SharpSixel`.
 | `Tree` | Hierarchical list with guide lines and collapsible nodes |
 | `Rule` | Separator line, horizontal (optional title) or vertical |
 | `CheckBox`, `RadioGroup` | Check box; radio options with one selected |
-| `HorizontalLayout` | Places widgets side by side |
+| `HorizontalLayout`, `VerticalLayout` | Places widgets side by side / on top of each other |
 | `ImageView` | Image fitted into a view of fixed size, optional frame and own background |
 | Prompts | `Dialog`, `SelectionPrompt<T>`, `MultiSelectionPrompt<T>`, `TextPrompt` with validation, `OpenFileDialog` / `SaveFileDialog` |
 

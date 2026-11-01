@@ -41,8 +41,8 @@ the first; --active sets the checked/focus color, --inactive the unchecked marke
 radio shows a radio group with three options, the second selected and focused (--caption sets the first label); colors as
 for checkbox.
 
-layout shows a panel, a vertical rule and a radio group side by side (--caption sets the panel title, default Status;
---border the rule color, --active/--inactive the radio colors).
+layout shows a panel, a vertical rule and a column (radio group, rule, check box) side by side (--caption sets the panel
+title, default Status; --border the rule color, --active/--inactive the radio and check box colors).
 
 image shows a file (--file, BMP or sixel) or a generated demo image fitted into a view of --width x --rows cells
 (default 40 x 10); --border <color> adds a frame, --background <color> sets the view background.
@@ -767,13 +767,19 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         panel.AddLine("Server: online");
         panel.AddLine("Files: 42");
         panel.AddLine("Errors: 0");
-        var rule = new Rule { Orientation = RuleOrientation.Vertical, Height = 5 };
-        if (a.Border is SixelColor border) { rule.Style.Color = border; }
+        var rule = new Rule { Orientation = RuleOrientation.Vertical };
+        var separator = new Rule();
+        if (a.Border is SixelColor border) { rule.Style.Color = border; separator.Style.Color = border; }
+
+        var column = new VerticalLayout();
+        column.Add(CreateRadioGroup(a, "Small"));
+        column.Add(separator);
+        column.Add(new CheckBox("Verbose", CreateToggleStyle(a)) { Checked = true });
 
         var layout = new HorizontalLayout();
         layout.Add(panel);
         layout.Add(rule);
-        layout.Add(CreateRadioGroup(a, "Small"));
+        layout.Add(column);
         ShowOnce(layout, widgets, env, live);
     }
 

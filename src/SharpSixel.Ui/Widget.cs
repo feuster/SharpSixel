@@ -58,6 +58,12 @@ public abstract class Widget
     protected abstract string RenderSixel(WidgetEnvironment environment);
 
     /// <summary>
+    /// True if the width follows the space offered (a horizontal <see cref="Rule"/> without width); a <see cref="VerticalLayout"/>
+    /// then offers it the width of the other children.
+    /// </summary>
+    internal virtual bool FillsWidth => false;
+
+    /// <summary>
     /// Measures the width in cells. The default is the widest line of the ASCII frame (ANSI sequences do not count); widgets whose
     /// sixel frame has another width override it.
     /// </summary>

@@ -50,8 +50,12 @@ public sealed class WidgetEnvironment
     /// </summary>
     public int GetImageHeight(int rows) => Math.Max(6, rows * CellHeight / 6 * 6);
 
-    /// <summary>Copy of this environment with another terminal width (for widgets placed inside a <see cref="HorizontalLayout"/>).</summary>
-    internal WidgetEnvironment WithColumns(int columns) => new WidgetEnvironment(UseSixel, CellWidth, CellHeight, UseAnsi, columns);
+    /// <summary>Rows of the layout this widget is placed in, 0 if none (lets a vertical <see cref="Rule"/> stretch).</summary>
+    internal int Rows { get; private set; }
+
+    /// <summary>Copy of this environment for a widget placed inside a layout: the terminal width and the rows left to it.</summary>
+    internal WidgetEnvironment WithSpace(int columns, int rows) =>
+        new WidgetEnvironment(UseSixel, CellWidth, CellHeight, UseAnsi, columns) { Rows = rows };
 
     /// <summary>Creates an environment from a render mode and the queried terminal capabilities.</summary>
     /// <param name="mode">Requested mode; <see cref="RenderMode.Auto"/> follows <paramref name="terminal"/>.</param>

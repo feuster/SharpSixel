@@ -532,9 +532,10 @@ public class UiCliAppTests
         Assert.Equal(5, lines.Length);
         Assert.StartsWith("+- Status -", lines[0], StringComparison.Ordinal);
         Assert.EndsWith("|    ( ) Small", lines[0].TrimEnd(), StringComparison.Ordinal);
-        Assert.Equal("| Server: online |  |  > (*) Medium", lines[1]);
+        Assert.Equal("| Server: online |  |  > (*) Medium", lines[1].TrimEnd());
         Assert.EndsWith("|    ( ) Large", lines[2].TrimEnd(), StringComparison.Ordinal);
-        Assert.StartsWith("+----------------+  |", lines[4], StringComparison.Ordinal);
+        Assert.EndsWith("|  " + new string('-', 13), lines[3], StringComparison.Ordinal);
+        Assert.Equal("+----------------+  |    [x] Verbose", lines[4]);
     }
 
     [Fact]

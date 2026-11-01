@@ -73,7 +73,7 @@ $ SharpSixel encode foto.jpg --show --fit
 - Einzelne, eigenständige Windows-Exe, keine .NET-Installation nötig
 
 **Widgets (`SharpSixel.Ui`, Demo: `SharpSixelUI.exe`)**
-- Terminal-Widgets als Sixel-Grafik mit automatischem ASCII-Fallback: `ProgressBar`, `Spinner`, `StatusDisplay`, `BarChart`, `Table`, `Button`, `Panel`, `Clock`, `DateDisplay`, `Tree`, `Rule`, `CheckBox`, `RadioGroup`, `HorizontalLayout` (Widgets nebeneinander), `ImageView`
+- Terminal-Widgets als Sixel-Grafik mit automatischem ASCII-Fallback: `ProgressBar`, `Spinner`, `StatusDisplay`, `BarChart`, `Table`, `Button`, `Panel`, `Clock`, `DateDisplay`, `Tree`, `Rule`, `CheckBox`, `RadioGroup`, `HorizontalLayout` / `VerticalLayout` (Widgets nebeneinander / untereinander), `ImageView`
 - Interaktive Prompts mit Validierung: `Dialog`, `SelectionPrompt`, `MultiSelectionPrompt`, `TextPrompt`, `OpenFileDialog`, `SaveFileDialog`; Mausunterstützung
 - Anpassbare Stile und Farben, Neuzeichnen an Ort und Stelle mit `LiveRegion`
 
@@ -229,7 +229,7 @@ und Wert-Texte sind normaler Terminaltext neben der Grafik. Das Paket hat die Zi
 | `Tree` | Hierarchische Liste mit Führungslinien und einklappbaren Knoten |
 | `Rule` | Trennlinie, waagerecht (optional mit Titel) oder senkrecht |
 | `CheckBox`, `RadioGroup` | Kontrollkästchen; Radio-Optionen mit einer Auswahl |
-| `HorizontalLayout` | Ordnet Widgets nebeneinander an |
+| `HorizontalLayout`, `VerticalLayout` | Ordnet Widgets nebeneinander / untereinander an |
 | `ImageView` | Bild, eingepasst in eine View fester Größe, optional mit Rahmen und eigenem Hintergrund |
 | Prompts | `Dialog`, `SelectionPrompt<T>`, `MultiSelectionPrompt<T>`, `TextPrompt` mit Validierung, `OpenFileDialog` / `SaveFileDialog` |
 

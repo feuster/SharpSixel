@@ -2,8 +2,8 @@
  SharpSixelUI / SharpSixel.Ui  -  Terminal widgets drawn as sixel graphics
 ================================================================================
 
- Version : 1.5.0
- Author  : Alexander Feuster
+ Versivn : 1.5.0
+ Authvr  : Alexander Feuster
  License : MIT
  Deutsche Version: README.Ui.txt
 
@@ -28,7 +28,8 @@ customizable. Available widgets:
   * Rule         separator line, horizontal (optional centered title) or vertical
   * CheckBox     label with a box (checked or not), focus and disabled state
   * RadioGroup   radio options, one selected, one focused
-  * HorizontalLayout  places widgets side by side (also usable for nested layouts)
+  * HorizontalLayout  places widgets side by side (optionally with fixed column widths)
+  * VerticalLayout    stacks widgets on top of each other (nestable, a Rule fills its width)
   * ImageView    image fitted into a view of fixed size, optional frame, own
                  background; image as graphic or loaded from a file
   * Prompts      interactive input with validation: Dialog (message with buttons),
@@ -68,8 +69,9 @@ SharpSixel.exe is described in README.en.txt.
               first; --active = checked/focus color, --inactive = unchecked marker, --background = graphic background
   radio       shows a radio group with three options, the second selected and focused (--caption = first label); colors
               as for checkbox
-  layout      shows a panel, a vertical rule and a radio group side by side (--caption = panel title, default "Status";
-              --border = rule color, --active/--inactive = radio colors)
+  layout      shows a panel, a vertical rule (stretched to the height) and a column of radio group, rule and
+              check box side by side (--caption = panel title, default "Status"; --border = rule color,
+              --active/--inactive = radio/check box colors)
   image       shows an image fitted into a view: --file (BMP or sixel) or a generated
               demo image; --border adds a frame, --background sets the view background
   prompts     interactive: dialog, selection, multi-selection, text and password (clickable with the mouse)
@@ -272,7 +274,7 @@ Rule, CheckBox, RadioGroup and HorizontalLayout (widgets side by side; every chi
     group.AddOption("Medium");
     var layout = new HorizontalLayout { Spacing = 2 };
     layout.Add(panel);
-    layout.Add(new Rule { Orientation = RuleOrientation.Vertical, Height = 3 });   // separator between the children
+    layout.Add(new Rule { Orientation = RuleOrientation.Vertical });   // separator, stretches to the layout height
     layout.Add(group);
     layout.Add(new CheckBox("Verbose") { Checked = true, Focused = true });
 
@@ -405,14 +407,15 @@ Types:
   TreeNode            Text, Expanded, Nodes, AddNode(text)
   TreeStyle           LineThickness, CollapsedSuffix, GuideColor, TitleColor,
                       AsciiVertical, AsciiBranch, AsciiLastBranch, AsciiHorizontal
-  Rule                Orientation, Title, Width (null = terminal width, 40 if unknown), Height (vertical), Style
+  Rule                Orientation, Title, Width (null = terminal width, 40 if unknown), Height (vertical; null = stretch to the layout), Style
   RuleStyle           LineThickness, Color, TitleColor, AsciiHorizontal, AsciiVertical
   CheckBox            Label, Checked, Focused, Enabled, Contains(env, column, row), Style
   RadioGroup          Options, AddOption(label), SelectedIndex, FocusedIndex, Enabled,
                       IndexAt(env, column, row), Style
   ToggleStyle         ActiveColor, InactiveColor, DisabledColor, HighlightColor, BackgroundColor,
                       AsciiPointer, AsciiCheckOn, AsciiCheckOff, AsciiRadioOn, AsciiRadioOff
-  HorizontalLayout    Children, Add(widget), Spacing
+  HorizontalLayout    Children, Add(widget), Add(widget, width), Spacing
+  VerticalLayout      Children, Add(widget), Spacing
   Widget (all)        Render(env), GetRows(env), GetColumns(env)
   ImageView           Image, Load(path|stream|bytes), Decoder, AllowUpscale, Columns, Rows, Style
   ImageViewStyle      ShowBorder, BorderColor, BorderThickness, BackgroundColor,
@@ -522,7 +525,7 @@ Types:
     properties of the style) with optional ANSI colors for guides and title.
   * Rule: separator line. Horizontal: one row, Width cells (null = terminal width, 40 if
     unknown, never wider than the terminal) with an optional centered Title (cut with an
-    ellipsis, dropped if there is no room). Vertical: one cell wide, Height rows. Sixel: pixel
+    ellipsis, dropped if there is no room). Vertical: one cell wide, Height rows (null = the height of the HorizontalLayout it is in, else 1). Sixel: pixel
     line (LineThickness, Color), the cells of the title carry no line; ASCII: - and | (Ascii*
     properties) with optional ANSI colors.
   * CheckBox and RadioGroup: draw only; the caller changes Checked / SelectedIndex and
@@ -535,7 +538,7 @@ Types:
   * HorizontalLayout: places widgets side by side, top aligned, Spacing cells apart; the
     rows are those of the highest child. A child is as wide as Widget.GetColumns reports and
     may use the terminal width that is left of its column. Every child draws its own frame,
-    shifted to its column. Children should keep their width between frames. Widget.GetColumns
+    shifted to its column. A child can get a fixed width with Add(widget, width): it then keeps its column when its content changes, and a\n    Rule without Width fills it. Other children should keep their width between frames. A vertical Rule without\n    Height stretches to the rows of the layout. Widget.GetColumns
     (public) measures the widest row; custom widgets whose sixel frame differs from the
     ASCII frame override the protected MeasureColumns.
   * ImageView: the view has a fixed size (Columns x Rows cells; sixel image

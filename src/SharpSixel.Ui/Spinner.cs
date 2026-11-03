@@ -65,7 +65,7 @@ public sealed class Spinner : Widget
 
     /// <inheritdoc />
     protected override int MeasureColumns(WidgetEnvironment environment) =>
-        environment.UseSixel ? ImageColumns(environment) + TrailingText().Length : base.MeasureColumns(environment);
+        environment.UseSixel ? ImageColumns(environment) + TextFit.Width(TrailingText()) : base.MeasureColumns(environment);
 
     internal SixelImage CreateImage(WidgetEnvironment environment)
     {

@@ -42,6 +42,9 @@ internal sealed class UiCliArguments
 
     public bool NoAnsi { get; private set; }
 
+    /// <summary>True with <c>--indeterminate</c>: the progress bar shows no progress but a moving segment.</summary>
+    public bool Indeterminate { get; private set; }
+
     public bool NoMouse { get; private set; }
 
     public bool Click { get; private set; }
@@ -103,6 +106,10 @@ internal sealed class UiCliArguments
             else if (inlineValue == null && arg == "--no-ansi")
             {
                 result.NoAnsi = true;
+            }
+            else if (inlineValue == null && arg == "--indeterminate")
+            {
+                result.Indeterminate = true;
             }
             else if (inlineValue == null && arg == "--no-mouse")
             {

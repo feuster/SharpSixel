@@ -11,6 +11,8 @@ public sealed class ProgressBarStyle
     private double _barThickness = 0.6;
     private int _cornerRadius = 3;
     private int _borderThickness = 1;
+    private double _indeterminateSegment = 0.3;
+    private int _indeterminateSteps = 30;
 
     /// <summary>Bar width in terminal cells (including the ASCII borders). Default 30.</summary>
     public int Width
@@ -45,6 +47,23 @@ public sealed class ProgressBarStyle
     {
         get => _borderThickness;
         set => _borderThickness = Guard.AtLeast(value, 0, nameof(value));
+    }
+
+    /// <summary>Length of the moving segment of an indeterminate bar as fraction of the bar (0.05-0.9). Default 0.3.</summary>
+    public double IndeterminateSegment
+    {
+        get => _indeterminateSegment;
+        set => _indeterminateSegment = Guard.InRange(value, 0.05, 0.9, nameof(value));
+    }
+
+    /// <summary>
+    /// Animation steps (calls of <see cref="ProgressBar.Advance"/>) the segment of an indeterminate bar needs for one way
+    /// from end to end; it then moves back. Default 30.
+    /// </summary>
+    public int IndeterminateSteps
+    {
+        get => _indeterminateSteps;
+        set => _indeterminateSteps = Guard.AtLeast(value, 1, nameof(value));
     }
 
     /// <summary>Color of the finished part.</summary>

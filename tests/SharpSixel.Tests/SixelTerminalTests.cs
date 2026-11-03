@@ -93,7 +93,121 @@ public class SixelTerminalTests
         Assert.Equal(10, info.CellWidth);
         Assert.Equal(20, info.CellHeight);
         Assert.True(info.HasTextAreaSize && info.HasCellSize);
+        Assert.Equal(
+            SixelTerminal.PixelSizeRequest + SixelTerminal.DeviceAttributesRequest
+            + SixelTerminal.GraphicsRequest + SixelTerminal.ModeRequest + SixelTerminal.DeviceAttributesRequest,
+            output.ToString());
+    }
+
+    [Fact]
+    public void Query_SixelTerminal_ReportsColorRegistersGeometryAndModes()
+    {
+        string reply = Esc + "[4;600;800t" + Esc + "[6;20;10t" + Esc + "[?62;4c"
+            + Esc + "[?1;0;1024S" + Esc + "[?2;0;1000;800S" + Esc + "[?80;2$y" + Esc + "[?1070;1$y" + Esc + "[?62;4c";
+
+        SixelTerminalInfo info = SixelTerminal.Query(new StringWriter(), Source(reply));
+
+        Assert.True(info.SupportsSixel);
+        Assert.Equal(800, info.TextAreaWidth);
+        Assert.Equal(1024, info.ColorRegisters);
+        Assert.Equal((1000, 800), (info.GraphicsWidth, info.GraphicsHeight));
+        Assert.True(info.HasColorRegisters && info.HasGraphicsSize);
+        Assert.Equal(TerminalModeState.Reset, info.SixelDisplayMode);
+        Assert.Equal(TerminalModeState.Set, info.PrivateColorRegisters);
+    }
+
+    [Fact]
+    public void Query_WithoutSixel_SendsNoGraphicsRequests()
+    {
+        var output = new StringWriter();
+
+        SixelTerminalInfo info = SixelTerminal.Query(output, Source(Esc + "[?1;2c"));
+
         Assert.Equal(SixelTerminal.PixelSizeRequest + SixelTerminal.DeviceAttributesRequest, output.ToString());
+        Assert.False(info.HasColorRegisters);
+        Assert.Equal(TerminalModeState.NotRecognized, info.SixelDisplayMode);
+    }
+
+    [Fact]
+    public void Query_TerminalIgnoringGraphicsRequests_LeavesValuesUnknown()
+    {
+        SixelTerminalInfo info = SixelTerminal.Query(new StringWriter(), Source(Esc + "[?62;4c" + Esc + "[?62;4c"));
+
+        Assert.True(info.SupportsSixel);
+        Assert.False(info.HasColorRegisters);
+        Assert.False(info.HasGraphicsSize);
+        Assert.Equal(TerminalModeState.NotRecognized, info.PrivateColorRegisters);
+    }
+
+    [Fact]
+    public void Query_FailedGraphicsStatusAndUnknownModes_AreIgnored()
+    {
+        string reply = Esc + "[?62;4c" + Esc + "[?1;3;0S" + Esc + "[?2;1;0S" + Esc + "[?80;0$y" + Esc + "[?1070;9$y" + Esc + "[?62;4c";
+
+        SixelTerminalInfo info = SixelTerminal.Query(new StringWriter(), Source(reply));
+
+        Assert.False(info.HasColorRegisters);
+        Assert.False(info.HasGraphicsSize);
+        Assert.Equal(TerminalModeState.NotRecognized, info.SixelDisplayMode);
+        Assert.Equal(TerminalModeState.NotRecognized, info.PrivateColorRegisters);
+    }
+
+    [Theory]
+    [InlineData("[?1;0;256S", 1, 0, 256, 0)]
+    [InlineData("[?2;0;1000;800S", 2, 0, 1000, 800)]
+    [InlineData("[?2;3;0S", 2, 3, 0, 0)]
+    public void TryParseGraphicsReport_ReadsItemStatusAndValues(string body, int item, int status, int first, int second)
+    {
+        Assert.True(SixelTerminal.TryParseGraphicsReport(Esc + body, out int i, out int s, out int f, out int g));
+        Assert.Equal((item, status, first, second), (i, s, f, g));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("[?1;0S")]
+    [InlineData("[1;0;256S")]
+    [InlineData("[?1;0;xS")]
+    [InlineData("[?1;0;256;1;2S")]
+    [InlineData("[?1;0;256c")]
+    public void TryParseGraphicsReport_InvalidInput_ReturnsFalse(string? body)
+    {
+        string? reply = body == null ? null : Esc + body;
+
+        Assert.False(SixelTerminal.TryParseGraphicsReport(reply, out _, out _, out _, out _));
+    }
+
+    [Theory]
+    [InlineData("[?80;1$y", 80, TerminalModeState.Set)]
+    [InlineData("[?80;2$y", 80, TerminalModeState.Reset)]
+    [InlineData("[?1070;3$y", 1070, TerminalModeState.PermanentlySet)]
+    [InlineData("[?1070;4$y", 1070, TerminalModeState.PermanentlyReset)]
+    [InlineData("[?80;0$y", 80, TerminalModeState.NotRecognized)]
+    public void TryParseModeReport_ReadsModeAndState(string body, int mode, TerminalModeState state)
+    {
+        Assert.True(SixelTerminal.TryParseModeReport(Esc + body, out int m, out TerminalModeState s));
+        Assert.Equal((mode, state), (m, s));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("[80;2$y")]
+    [InlineData("[?80$y")]
+    [InlineData("[?80;2y")]
+    [InlineData("[?x;2$y")]
+    public void TryParseModeReport_InvalidInput_ReturnsFalse(string? body)
+    {
+        string? reply = body == null ? null : Esc + body;
+
+        Assert.False(SixelTerminal.TryParseModeReport(reply, out _, out _));
+    }
+
+    [Fact]
+    public void ModeSequences_AreDecPrivateSetAndReset()
+    {
+        Assert.Equal(Esc + "[?80l", SixelTerminal.SixelScrollingOn);
+        Assert.Equal(Esc + "[?80h", SixelTerminal.SixelScrollingOff);
+        Assert.Equal(Esc + "[?1070h", SixelTerminal.PrivateColorRegistersOn);
+        Assert.Equal(Esc + "[?1070l", SixelTerminal.PrivateColorRegistersOff);
     }
 
     [Fact]

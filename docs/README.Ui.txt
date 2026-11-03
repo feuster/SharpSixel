@@ -2,7 +2,7 @@
  SharpSixelUI / SharpSixel.Ui  -  Terminal-Widgets als Sixel-Grafik
 ================================================================================
 
- Version : 1.5.0
+ Version : 1.6.0
  Autor   : Alexander Feuster
  Lizenz  : MIT
  English version: README.Ui.en.txt
@@ -15,7 +15,8 @@ die Widgets im Terminal zeichnet. Unterstützt das Terminal Sixel, wird das
 Widget als Grafik gezeichnet, sonst aus ASCII-Zeichen aufgebaut. Style und
 Farben sind anpassbar. Verfügbare Widgets:
 
-  * ProgressBar  mit optionaler Caption und Prozent- oder Wert/Maximum-Anzeige
+  * ProgressBar  mit optionaler Caption und Prozent- oder Wert/Maximum-Anzeige oder wanderndem Segment (IsIndeterminate)
+  * ProgressGroup  mehrere ProgressBars untereinander mit ausgerichteten Captions (Multi-Task)
   * Spinner      mit optionaler Caption
   * StatusDisplay  Spinner mit änderbarem Statustext für Arbeit unbekannter Dauer
   * BarChart     horizontales Balkendiagramm: Label, Balken, Wert; optionale Überschrift
@@ -43,9 +44,10 @@ SharpSixel.exe ist in README.txt beschrieben.
 
 2. DAS DEMO-PROGRAMM
 --------------------
-    SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|rule|checkbox|radio|layout|image|prompts|open|save|osc|demo> [Optionen]
+    SharpSixelUI <progress|tasks|spinner|status|chart|table|button|panel|clock|date|tree|rule|checkbox|radio|layout|image|prompts|open|save|osc|demo> [Optionen]
 
-  progress    animierte ProgressBar von 0 bis 100 %
+  progress    animierte ProgressBar von 0 bis 100 % (--indeterminate: wanderndes Segment, kein Fortschrittstext)
+  tasks       drei ProgressBars mit ausgerichteten Captions (Download, Unpack, Scan mit unbekanntem Fortschritt)
   spinner     animierter Spinner
   status      Statusanzeige: Spinner mit wechselndem Text, Meldungen laufen darüber
   chart       animiertes Balkendiagramm (Demo-Daten wachsen auf ihre Werte)
@@ -87,7 +89,7 @@ SharpSixel.exe ist in README.txt beschrieben.
               Textfarbe, --background die Hintergrundfarbe, --active die Cursorfarbe (Standard: Gold, Dunkelblau, Rot); der
               Cursorstil durchläuft Block, Unterstrich und Balken (blinkend und statisch) während --duration Sekunden;
               Strg+C bricht ab; danach wird alles zurückgesetzt; braucht ein Terminal, nicht Teil von demo
-  demo        ProgressBar, Spinner, Statusanzeige, Balkendiagramm, Tabelle, Button, Panel, danach Uhrzeit, Datum und Baum, danach Trennlinie, Kontrollkästchen, Radiogruppe und Layout (Standard-Captions "Download"/"Loading"/"Fruit sales"/"Fruit stock"/"Status"/"Files")
+  demo        ProgressBar, tasks, Spinner, Statusanzeige, Balkendiagramm, Tabelle, Button, Panel, danach Uhrzeit, Datum und Baum, danach Trennlinie, Kontrollkästchen, Radiogruppe und Layout (Standard-Captions "Download"/"Loading"/"Fruit sales"/"Fruit stock"/"Status"/"Files")
 
 Optionen:
 
@@ -423,10 +425,12 @@ Typen:
   ImageView           Image, Load(Pfad|Stream|Bytes), Decoder, AllowUpscale, Columns, Rows, Style
   ImageViewStyle      ShowBorder, BorderColor, BorderThickness, BackgroundColor,
                       AsciiCorner, AsciiHorizontal, AsciiVertical, AsciiRamp
-  ProgressBar         Value, Maximum, Caption, ProgressText, Style
+  ProgressBar         Value, Maximum, Caption, ProgressText, IsIndeterminate, Advance(), Frame, Style
+  ProgressGroup       Tasks, AddTask(caption, maximum), Add(bar), Advance(), Style
   ProgressBarStyle    Width, HeightRows, BarThickness, CornerRadius,
                       BorderThickness, FillColor, TrackColor, BorderColor,
-                      BackgroundColor, AsciiBorderLeft/Right, AsciiFill, AsciiEmpty
+                      BackgroundColor, AsciiBorderLeft/Right, AsciiFill, AsciiEmpty,
+                      IndeterminateSegment, IndeterminateSteps
   Spinner             Caption, Advance(), Frame, Style
   SpinnerStyle        HeightRows, SegmentCount, TrailLength, DotScale,
                       ActiveColor, InactiveColor, BackgroundColor, AsciiFrames
@@ -439,8 +443,8 @@ Typen:
                       StripeColor, AsciiHorizontal, AsciiVertical, AsciiCorner
   StatusDisplay       Start(text), Text, WriteLine(text), Refresh(), Stop(), IsRunning,
                       AutoRefresh, RefreshInterval, SpinnerStyle
-  LiveRegion          Begin(rows), Update(widget), End(): zeichnet an Ort und Stelle neu;
-                      EnableMouse(readInput), TryGetLocal(mouse, out col, out row)
+  LiveRegion          LiveRegion(writer, env, columns?), Begin(rows), Update(widget), End(): zeichnet an
+                      Ort und Stelle neu; Resize(columns); EnableMouse(readInput), TryGetLocal(mouse, out col, out row)
 
 
 4. HINWEISE UND GRENZEN
@@ -453,7 +457,25 @@ Typen:
     Demo-CLI übergibt Console.WindowWidth. Prompts, Dialoge und die übrigen Widgets
     werden nicht begrenzt.
   * Caption und Fortschrittstext sind normaler Terminaltext neben der Grafik
-    (Sixel hat keine Schrift). Angenommen wird eine Zelle pro Zeichen.
+    (Sixel hat keine Schrift). Breiten werden in Zellen gemessen (TextFit): ostasiatische
+    breite Zeichen und Emoji zählen zwei Zellen, kombinierende Zeichen und Zero Width
+    Joiner keine, alles andere eine. Die Tabelle ist eine Näherung der Unicode-Eigenschaft
+    East Asian Width (breite und Fullwidth-Blöcke, Emoji-Blöcke; Hautton-Modifikatoren
+    zählen zum Emoji davor); ein Terminal, das ein Zeichen anders zeichnet, oder eine
+    ZWJ-Emoji-Sequenz als ein Glyph ist nicht abgebildet. Text und Rahmen bleiben dadurch
+    bei Button, Panel, Table, BarChart, Rule, CheckBox/RadioGroup, Dialog und Dateidialog
+    ausgerichtet.
+  * ProgressBar mit IsIndeterminate zeigt ein Segment (IndeterminateSegment der Leiste), das in
+    IndeterminateSteps Aufrufen von Advance() von Ende zu Ende und zurück wandert; Value und
+    Fortschrittstext werden ignoriert. ProgressGroup richtet die Captions seiner Tasks aus
+    (die Leisten beginnen in derselben Spalte) und animiert die unbestimmten mit Advance().
+  * LiveRegion.Resize(columns) passt eine Region an eine neue Terminalbreite an: sie löscht die
+    reservierten Zeilen und rendert den nächsten Frame für die neue Breite. Der Konstruktor
+    nimmt eine Quelle für die aktuelle Breite entgegen (zum Beispiel () => Console.WindowWidth);
+    die Region passt sich dann beim Zeichnen eines Frames selbst an, wenn sich die Breite
+    geändert hat (StatusDisplay.Columns ebenso, die Demo-CLI übergibt Console.WindowWidth). Der
+    gemerkte Ursprung bleibt dabei gültig; ein Terminal, das seinen Text beim Verändern der Größe
+    umbricht, kann Reste hinterlassen.
   * LiveRegion reserviert zuerst die Zeilen, merkt sich die Cursorposition
     (ESC 7 / ESC 8) und bewegt sich relativ dazu. Es schreibt in jeden
     TextWriter. Console.SetCursorPosition wird nicht verwendet: Es arbeitet mit

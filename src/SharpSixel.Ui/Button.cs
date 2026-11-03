@@ -45,7 +45,7 @@ public sealed class Button : Widget
     public ButtonState State { get; set; }
 
     /// <summary>Width of the button in terminal cells: the label plus padding and edges, at least <see cref="ButtonStyle.MinWidth"/>.</summary>
-    public int Columns => Math.Max(Style.MinWidth, PromptRow.Clean(_label).Length + (2 * (Style.Padding + 1)));
+    public int Columns => Math.Max(Style.MinWidth, TextFit.Width(PromptRow.Clean(_label)) + (2 * (Style.Padding + 1)));
 
     /// <summary>
     /// True if a position (column and row relative to the origin of the button, for example from
@@ -69,8 +69,7 @@ public sealed class Button : Widget
     {
         string label = PromptRow.Clean(_label);
         int inner = Columns - 2;
-        char[] cells = new string(' ', inner).ToCharArray();
-        label.CopyTo(0, cells, (inner - label.Length) / 2, label.Length);
+        string[] cells = LayOut(label, inner);
         char left = ' ';
         char right = ' ';
         switch (State)
@@ -87,9 +86,9 @@ public sealed class Button : Widget
                 break;
         }
 
-        cells[0] = left;
-        cells[inner - 1] = right;
-        string text = Style.AsciiBorderLeft + new string(cells) + Style.AsciiBorderRight;
+        SetCell(cells, 0, left);
+        SetCell(cells, inner - 1, right);
+        string text = Style.AsciiBorderLeft + string.Concat(cells) + Style.AsciiBorderRight;
         string frame = State == ButtonState.Normal
             ? text
             : AnsiCodes.Colorize(text, AsciiColor(), environment.UseAnsi);
@@ -115,12 +114,68 @@ public sealed class Button : Widget
         if (label.Length > 0)
         {
             SixelColor text = State == ButtonState.Disabled ? Style.DisabledTextColor : Style.TextColor;
-            sb.Append(AnsiCodes.Down(textRow)).Append(AnsiCodes.Forward((columns - label.Length) / 2))
+            sb.Append(AnsiCodes.Down(textRow)).Append(AnsiCodes.Forward((columns - TextFit.Width(label)) / 2))
                 .Append(AnsiCodes.Foreground(text)).Append(AnsiCodes.Background(Style.FaceColor(State)))
                 .Append(label).Append(AnsiCodes.Reset).Append(AnsiCodes.RestoreCursor);
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>The label centered in <paramref name="inner"/> cells; a wide character takes its cell and an empty continuation cell.</summary>
+    private static string[] LayOut(string label, int inner)
+    {
+        var cells = new string[inner];
+        for (int i = 0; i < inner; i++)
+        {
+            cells[i] = " ";
+        }
+
+        int position = Math.Max(0, (inner - TextFit.Width(label)) / 2);
+        for (int i = 0; i < label.Length && position < inner; i += char.IsHighSurrogate(label[i]) && i + 1 < label.Length ? 2 : 1)
+        {
+            string character = label.Substring(i, char.IsHighSurrogate(label[i]) && i + 1 < label.Length ? 2 : 1);
+            int cellCount = TextFit.Width(character);
+            if (cellCount == 0)
+            {
+                if (position > 0)
+                {
+                    cells[position - 1] += character;
+                }
+
+                continue;
+            }
+
+            if (position + cellCount > inner)
+            {
+                break;
+            }
+
+            cells[position] = character;
+            if (cellCount == 2)
+            {
+                cells[position + 1] = string.Empty;
+            }
+
+            position += cellCount;
+        }
+
+        return cells;
+    }
+
+    /// <summary>Puts a marker into a cell; a wide character it cuts in half is replaced by a space.</summary>
+    private static void SetCell(string[] cells, int index, char marker)
+    {
+        if (cells[index].Length == 0 && index > 0)
+        {
+            cells[index - 1] = " ";
+        }
+        else if (index + 1 < cells.Length && cells[index + 1].Length == 0)
+        {
+            cells[index + 1] = " ";
+        }
+
+        cells[index] = marker.ToString();
     }
 
     internal SixelImage CreateImage(WidgetEnvironment environment)

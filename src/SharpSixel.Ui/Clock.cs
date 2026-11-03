@@ -68,7 +68,7 @@ public sealed class Clock : Widget
     /// <inheritdoc />
     protected override int MeasureColumns(WidgetEnvironment environment) =>
         environment.UseSixel
-            ? CaptionPrefix().Length + ImageColumns(environment) + 1 + TimeText(false).Length
+            ? TextFit.Width(CaptionPrefix()) + ImageColumns(environment) + 1 + TextFit.Width(TimeText(false))
             : base.MeasureColumns(environment);
 
     internal SixelImage CreateImage(WidgetEnvironment environment)

@@ -5,14 +5,14 @@ namespace SharpSixel.Ui;
 /// <summary>
 /// Assembles a sixel widget frame: optional caption, the graphic and optional trailing text on the vertically centered row.
 /// The frame saves the cursor at its origin and addresses everything relative to it, because the cursor position
-/// after a sixel image differs between terminals. Text is assumed to occupy one cell per char.
+/// after a sixel image differs between terminals. Text widths are measured in cells (see TextFit).
 /// </summary>
 internal static class SixelFrame
 {
     public static string Build(SixelImage image, int rows, int imageColumns, string caption, string trailing, bool eraseBehind)
     {
         int textRow = (rows - 1) / 2;
-        int imageColumn = caption.Length;
+        int imageColumn = TextFit.Width(caption);
         var sb = new StringBuilder();
         sb.Append(AnsiCodes.SaveCursor);
 

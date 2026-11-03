@@ -9,12 +9,15 @@ namespace SharpSixel.Ui;
 /// moves, so it works on any TextWriter and does not depend on absolute buffer coordinates. The rows are reserved
 /// up front, so a scrolling terminal cannot invalidate the saved position. In sixel mode one guard row is reserved
 /// below the region: terminals move the cursor below a sixel image, which would scroll the screen (and shift the
-/// saved position) if the region ends on the last screen row.
+/// saved position) if the region ends on the last screen row. If the terminal is resized, <see cref="Resize"/> (or the
+/// <c>columns</c> source passed to the constructor) clears the region and draws the next frame for the new width; this assumes the
+/// terminal keeps the saved origin, a terminal that reflows its text on resize may leave remnants.
 /// </summary>
 public sealed class LiveRegion : IDisposable
 {
     private readonly TextWriter _writer;
-    private readonly WidgetEnvironment _environment;
+    private readonly Func<int>? _columns;
+    private WidgetEnvironment _environment;
     private int _rows;
     private bool _active;
     private bool _mouse;
@@ -22,10 +25,17 @@ public sealed class LiveRegion : IDisposable
     private int _originColumn;
 
     /// <summary>Creates a live region on the given output.</summary>
-    public LiveRegion(TextWriter writer, WidgetEnvironment environment)
+    /// <param name="writer">Terminal output.</param>
+    /// <param name="environment">Environment the widgets are rendered for.</param>
+    /// <param name="columns">
+    /// Optional source of the current terminal width in cells (0 = unknown). If it reports another width than the environment has
+    /// when a frame is drawn, the region is resized first (see <see cref="Resize"/>). Ignored if the environment has no width.
+    /// </param>
+    public LiveRegion(TextWriter writer, WidgetEnvironment environment, Func<int>? columns = null)
     {
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
         _environment = environment ?? throw new ArgumentNullException(nameof(environment));
+        _columns = columns;
     }
 
     private int GuardRows => _environment.UseSixel ? 1 : 0;
@@ -100,6 +110,34 @@ public sealed class LiveRegion : IDisposable
         return _active && _mouse && column >= 0 && row >= 0 && row < _rows;
     }
 
+    /// <summary>
+    /// Adapts the region to a new terminal width: erases the reserved rows (the old frame may be cut or wrapped at the new width)
+    /// and renders the following frames for <paramref name="columns"/> cells. The next <see cref="Update"/> draws the widget again.
+    /// </summary>
+    /// <param name="columns">New terminal width in cells, 0 if unknown.</param>
+    public void Resize(int columns)
+    {
+        Guard.AtLeast(columns, 0, nameof(columns));
+        if (columns == _environment.Columns)
+        {
+            return;
+        }
+
+        if (_active)
+        {
+            var sb = new StringBuilder(AnsiCodes.RestoreCursor);
+            for (int row = 0; row < _rows + GuardRows; row++)
+            {
+                sb.Append(AnsiCodes.Down(row)).Append(AnsiCodes.EraseLine).Append(AnsiCodes.RestoreCursor);
+            }
+
+            _writer.Write(sb.ToString());
+            _writer.Flush();
+        }
+
+        _environment = _environment.WithColumns(columns);
+    }
+
     /// <summary>Draws the current frame of the widget over the previous one.</summary>
     public void Update(Widget widget)
     {
@@ -111,6 +149,15 @@ public sealed class LiveRegion : IDisposable
         if (!_active)
         {
             throw new InvalidOperationException("Call Begin first.");
+        }
+
+        if (_columns != null && _environment.Columns > 0)
+        {
+            int current = _columns();
+            if (current > 0)
+            {
+                Resize(current);
+            }
         }
 
         if (widget.GetRows(_environment) > _rows)

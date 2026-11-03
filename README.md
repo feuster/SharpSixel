@@ -198,7 +198,7 @@ Without Skia, `BmpCodec.Decode(bytes)` / `BmpCodec.Encode(image)` cover BMP file
 | `SixelEncoder`, `SixelEncoderOptions` | Image to sixel: `MaxColors`, `AlphaThreshold`, `EmitRasterAttributes`, `Dithering` |
 | `SixelDecoder`, `SixelDecoderOptions` | Sixel to image: size limits, register count, background color; `LooksLikeSixel` |
 | `BmpCodec`, `ImageScaler` | BMP read/write, `Resize` / `Fit` / `FitSize` (aspect ratio kept, as large as possible) and `Stretch` / `StretchSize` (limits used completely, aspect ratio ignored) |
-| `SixelTerminal`, `SixelTerminalInfo` | DA1 and pixel size query |
+| `SixelTerminal`, `SixelTerminalInfo` | DA1, pixel size, color register and graphics size (XTSMGRAPHICS) and DECSDM / mode 1070 query |
 | `SkiaImageCodec` (`SharpSixel.Skia`) | PNG/JPEG/... conversion and `SKBitmap` interop |
 | `SixelException` | Invalid data or exceeded limits |
 
@@ -215,7 +215,7 @@ on `SharpSixel`.
 
 | Widget | Purpose |
 |---|---|
-| `ProgressBar`, `Spinner` | Progress with optional caption and percent or value text; animated spinner |
+| `ProgressBar`, `ProgressGroup`, `Spinner` | Progress with optional caption and percent or value text or a moving segment; several tasks below each other; animated spinner |
 | `StatusDisplay` | Spinner with a changeable status text for work of unknown duration; messages scroll above it |
 | `BarChart` | Horizontal bar chart: label, bar, value |
 | `Table` | Column headers and aligned text cells in a grid, optional stripes |

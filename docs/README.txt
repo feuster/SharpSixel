@@ -2,7 +2,7 @@
  SharpSixel  -  Sixel-Grafiken enkodieren und dekodieren
 ================================================================================
 
- Version : 1.5.0  (aktuelle Version des Programms: SharpSixel --version)
+ Version : 1.6.0  (aktuelle Version des Programms: SharpSixel --version)
  Autor   : Alexander Feuster
  Lizenz  : MIT
  English version: README.en.txt
@@ -178,6 +178,14 @@ Aufruf:
 
 Das Programm fragt das Terminal per "Primary Device Attributes" (Steuersequenz
 ESC [ c). Meldet das Terminal das Merkmal 4, kann es Sixel darstellen.
+Ein Terminal mit Sixel-Unterstützung wird danach auch nach der Anzahl der Farbregister und
+der maximalen Grafikgröße (XTSMGRAPHICS, ESC [ ? Pi ; 1 ; 0 S) sowie per DECRQM
+(ESC [ ? Ps $ p) nach dem Zustand des Sixel-Display-Modus DECSDM (Modus 80, gesetzt =
+Sixel-Scrolling aus) und des Modus 1070 (private Farbregister) gefragt. Was das Terminal
+meldet, wird nach dem Ergebnis aufgelistet ("Color registers: 256", "Maximum graphics
+size: 1000x1000 pixels", "Sixel scrolling: on", "Private color registers: on"); nicht
+gemeldete Werte entfallen. Mit --show begrenzt encode die Palette auf die gemeldete Zahl
+der Farbregister, wenn sie kleiner als --colors ist (ein Hinweis erscheint auf Standardfehler).
 Ausgabe: "Terminal supports sixel graphics." (Exit-Code 0) oder
 "Terminal does not support sixel graphics (or did not answer)." (Exit-Code 1).
 Antwortet das Terminal nicht innerhalb von etwa einer Sekunde oder sind
@@ -486,7 +494,10 @@ Wichtige Typen:
   SixelDecoderOptions   Größenlimits, Anzahl Farbregister, Hintergrundfarbe
   BmpCodec              BMP lesen und schreiben
   ImageScaler           Resize, Fit, FitSize, Stretch, StretchSize
-  SixelTerminal         Terminal-Abfrage (Sixel-Unterstützung, Pixelgröße)
+  SixelTerminal         Terminal-Abfrage (Sixel-Unterstützung, Pixelgröße, Farbregister, Grafikgröße,
+                        Zustand von DECSDM / Modus 1070; Konstanten für DECSDM und Modus 1070)
+  SixelTerminalInfo     Ergebnis der Abfrage (SupportsSixel, TextArea*/Cell*, ColorRegisters,
+                        GraphicsWidth/Height, SixelDisplayMode, PrivateColorRegisters)
   SixelException        Fehler bei ungültigen Daten oder Limits
 
 Die Terminal-Abfrage (SixelTerminal.Detect / Query) ist unabhängig von der
@@ -495,6 +506,12 @@ nächste Eingabezeichen liefert (oder -1 bei Zeitüberschreitung). Das
 Terminal muss dafür im Raw-Modus laufen; die Umsetzung dafür liegt beim
 Aufrufer (SharpSixel.exe enthält eine fertige Variante: unter Windows getestet,
 der Unix-Pfad ist implementiert, aber noch nicht auf Linux/macOS getestet).
+Unterstützt das Terminal Sixel, fragt Query ein zweites Mal (wieder mit DA1 abgeschlossen) nach den
+Farbregistern und der Grafikgröße (SixelTerminal.GraphicsRequest) und den Modi DECSDM und 1070
+(SixelTerminal.ModeRequest); Terminals, die diese Anfragen nicht kennen, lassen die Werte auf 0
+bzw. TerminalModeState.NotRecognized. SixelTerminal.SixelScrollingOn/Off (DECSDM) und
+PrivateColorRegistersOn/Off (Modus 1070) sind die passenden Schaltsequenzen; die Bibliothek
+schaltet selbst keinen Modus um.
 
 
 13. TECHNISCHE DETAILS UND GRENZEN

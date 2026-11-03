@@ -10,6 +10,7 @@ public sealed class ProgressBar : Widget
     private const int TransparentAlphaLimit = 128;
     private const int MinBarWidth = 3;
     private double _maximum = 100;
+    private int _frame;
 
     /// <summary>Creates a progress bar with the default style.</summary>
     public ProgressBar()
@@ -50,6 +51,21 @@ public sealed class ProgressBar : Widget
     /// <summary>Text shown after the bar. Default percent.</summary>
     public ProgressTextMode ProgressText { get; set; } = ProgressTextMode.Percent;
 
+    /// <summary>
+    /// True if the progress is not known: the bar shows a segment that moves back and forth (call <see cref="Advance"/> per
+    /// animation step) and no progress text; <see cref="Value"/> is ignored.
+    /// </summary>
+    public bool IsIndeterminate { get; set; }
+
+    /// <summary>Current animation step of an indeterminate bar (starts at 0).</summary>
+    public int Frame => _frame;
+
+    /// <summary>Moves an indeterminate bar to the next animation step.</summary>
+    public void Advance() => _frame = _frame == int.MaxValue ? 0 : _frame + 1;
+
+    /// <summary>Cells the caption is padded to (set by a <see cref="ProgressGroup"/> to align its bars), 0 for the natural width.</summary>
+    internal int CaptionPad { get; set; }
+
     /// <summary>Progress as fraction between 0 and 1.</summary>
     public double Fraction
     {
@@ -73,13 +89,21 @@ public sealed class ProgressBar : Widget
     {
         var layout = Layout(environment);
         int inner = layout.Bar - 2;
+        int skipped = 0;
         int filled = (int)Math.Round(Fraction * inner, MidpointRounding.AwayFromZero);
+        if (IsIndeterminate)
+        {
+            filled = Math.Min(inner, Math.Max(1, (int)Math.Round(inner * Style.IndeterminateSegment, MidpointRounding.AwayFromZero)));
+            skipped = (int)Math.Round(MarqueePhase() * (inner - filled), MidpointRounding.AwayFromZero);
+        }
+
         bool ansi = environment.UseAnsi;
         var sb = new StringBuilder();
         sb.Append(layout.Prefix);
         sb.Append(AnsiCodes.Colorize(Style.AsciiBorderLeft.ToString(), Style.BorderColor, ansi));
+        sb.Append(AnsiCodes.Colorize(new string(Style.AsciiEmpty, skipped), Style.TrackColor, ansi));
         sb.Append(AnsiCodes.Colorize(new string(Style.AsciiFill, filled), Style.FillColor, ansi));
-        sb.Append(AnsiCodes.Colorize(new string(Style.AsciiEmpty, inner - filled), Style.TrackColor, ansi));
+        sb.Append(AnsiCodes.Colorize(new string(Style.AsciiEmpty, inner - filled - skipped), Style.TrackColor, ansi));
         sb.Append(AnsiCodes.Colorize(Style.AsciiBorderRight.ToString(), Style.BorderColor, ansi));
         sb.Append(layout.Trailing);
         if (ansi)
@@ -128,6 +152,14 @@ public sealed class ProgressBar : Widget
         int innerHeight = thickness - (2 * border);
         int innerRadius = Math.Max(0, radius - border);
         Raster.FillRoundedRect(image, innerX, innerY, innerWidth, innerHeight, innerRadius, Style.TrackColor);
+        if (IsIndeterminate)
+        {
+            int segment = Math.Min(innerWidth, Math.Max(1, (int)Math.Round(innerWidth * Style.IndeterminateSegment, MidpointRounding.AwayFromZero)));
+            int start = (int)Math.Round(MarqueePhase() * (innerWidth - segment), MidpointRounding.AwayFromZero);
+            Raster.FillRoundedRect(image, innerX + start, innerY, segment, innerHeight, innerRadius, Style.FillColor);
+            return image;
+        }
+
         int fillEnd = innerX + (int)Math.Round(innerWidth * Fraction, MidpointRounding.AwayFromZero);
         Raster.FillRoundedRect(image, innerX, innerY, innerWidth, innerHeight, innerRadius, Style.FillColor, fillEnd);
         return image;
@@ -151,21 +183,35 @@ public sealed class ProgressBar : Widget
         }
 
         int available = Math.Max(0, environment.Columns - MinBarWidth);
-        if (prefix.Length + trailing.Length > available)
+        if (TextFit.Width(prefix) + TextFit.Width(trailing) > available)
         {
             trailing = TextFit.Clip(trailing, available);
-            int room = available - trailing.Length;
+            int room = available - TextFit.Width(trailing);
             prefix = room >= 2 && Caption is not null ? TextFit.Clip(Caption, room - 1) + " " : string.Empty;
         }
 
-        int bar = Math.Min(Style.Width, Math.Max(MinBarWidth, environment.Columns - prefix.Length - trailing.Length));
+        int bar = Math.Min(Style.Width, Math.Max(MinBarWidth, environment.Columns - TextFit.Width(prefix) - TextFit.Width(trailing)));
         return (prefix, trailing, bar);
     }
 
-    private string CaptionPrefix() => string.IsNullOrEmpty(Caption) ? string.Empty : Caption + " ";
+    private string CaptionPrefix() =>
+        string.IsNullOrEmpty(Caption) && CaptionPad == 0 ? string.Empty : TextFit.PadRight(Caption ?? string.Empty, CaptionPad) + " ";
+
+    /// <summary>Position of the moving segment of an indeterminate bar: 0 (left end) to 1 (right end), back and forth.</summary>
+    private double MarqueePhase()
+    {
+        int steps = Style.IndeterminateSteps;
+        int position = _frame % (2 * steps);
+        return position <= steps ? (double)position / steps : (double)((2 * steps) - position) / steps;
+    }
 
     private string TrailingText()
     {
+        if (IsIndeterminate)
+        {
+            return string.Empty;
+        }
+
         switch (ProgressText)
         {
             case ProgressTextMode.Percent:

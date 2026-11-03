@@ -117,7 +117,7 @@ public sealed class BarChart : Widget
         for (int i = 0; i < _items.Count; i++)
         {
             int filled = (int)Math.Round(Fraction(_items[i], maximum) * barWidth, MidpointRounding.AwayFromZero);
-            var sb = new StringBuilder(TextFit.Clip(_items[i].Label, labelWidth).PadRight(labelWidth));
+            var sb = new StringBuilder(TextFit.PadRight(TextFit.Clip(_items[i].Label, labelWidth), labelWidth));
             if (labelWidth > 0)
             {
                 sb.Append(' ');
@@ -287,7 +287,7 @@ public sealed class BarChart : Widget
         int width = 0;
         foreach (BarChartItem item in _items)
         {
-            width = Math.Max(width, item.Label.Length);
+            width = Math.Max(width, TextFit.Width(item.Label));
         }
 
         return width;

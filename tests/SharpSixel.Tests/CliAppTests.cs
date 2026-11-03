@@ -12,6 +12,7 @@ public sealed class CliAppTests : IDisposable
     private int _detectCalls;
     private TerminalSize? _terminalSize;
     private int _sizeQueries;
+    private SixelTerminalInfo? _terminalInfo;
 
     public CliAppTests()
     {
@@ -45,7 +46,8 @@ public sealed class CliAppTests : IDisposable
                 _sizeQueries++;
                 return _terminalSize;
             },
-            () => _outputIsTerminal);
+            () => _outputIsTerminal,
+            () => _terminalInfo);
         int code = CliApp.Run(args, env);
         return new Result(code, stdout.ToArray(), output.ToString(), error.ToString());
     }
@@ -498,6 +500,47 @@ public sealed class CliAppTests : IDisposable
         SixelImage shown = new SixelDecoder().Decode(result.Stdout);
         Assert.Equal(TestImage.Width, shown.Width);
         Assert.Equal(TestImage.Height, shown.Height);
+    }
+
+    [Fact]
+    public void Check_Supported_ListsReportedTerminalDetails()
+    {
+        _terminalSupportsSixel = true;
+        _terminalInfo = new SixelTerminalInfo(true, 0, 0, 0, 0, 256, 1000, 800, TerminalModeState.Reset, TerminalModeState.Set);
+
+        Result result = Run(null, "check");
+
+        Assert.Contains("Color registers: 256", result.Out, StringComparison.Ordinal);
+        Assert.Contains("Maximum graphics size: 1000x800 pixels", result.Out, StringComparison.Ordinal);
+        Assert.Contains("Sixel scrolling: on", result.Out, StringComparison.Ordinal);
+        Assert.Contains("Private color registers: on", result.Out, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Check_Supported_WithoutReportedDetails_ListsNothingExtra()
+    {
+        _terminalSupportsSixel = true;
+        _terminalInfo = new SixelTerminalInfo(true, 0, 0, 0, 0);
+
+        Result result = Run(null, "check");
+
+        Assert.DoesNotContain("Color registers", result.Out, StringComparison.Ordinal);
+        Assert.DoesNotContain("Sixel scrolling", result.Out, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Show_LimitsPaletteToReportedColorRegisters()
+    {
+        _terminalInfo = new SixelTerminalInfo(true, 0, 0, 0, 0, 16);
+
+        Result limited = Run(null, "encode", WriteBmp("a.bmp"), "--show");
+        Assert.Contains("limiting the palette", limited.Error, StringComparison.Ordinal);
+
+        _terminalInfo = new SixelTerminalInfo(true, 0, 0, 0, 0, 1024);
+        Assert.DoesNotContain("limiting the palette", Run(null, "encode", WriteBmp("b.bmp"), "--show").Error, StringComparison.Ordinal);
+
+        _terminalInfo = new SixelTerminalInfo(true, 0, 0, 0, 0, 16);
+        Assert.DoesNotContain("limiting the palette", Run(null, "encode", WriteBmp("c.bmp")).Error, StringComparison.Ordinal);
     }
 
     [Fact]

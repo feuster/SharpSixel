@@ -102,10 +102,10 @@ public sealed class Rule : Widget
             return Tint(new string(horizontal, columns), Style.Color, ansi);
         }
 
-        int left = (columns - label.Length) / 2;
+        int left = (columns - TextFit.Width(label)) / 2;
         return Tint(new string(horizontal, left), Style.Color, ansi)
             + Tint(label, Style.TitleColor, ansi)
-            + Tint(new string(horizontal, columns - label.Length - left), Style.Color, ansi);
+            + Tint(new string(horizontal, columns - TextFit.Width(label) - left), Style.Color, ansi);
     }
 
     /// <inheritdoc />
@@ -124,7 +124,7 @@ public sealed class Rule : Widget
         if (label.Length > 0)
         {
             string text = Style.TitleColor.A >= ColorAlphaLimit ? AnsiCodes.Foreground(Style.TitleColor) + label + AnsiCodes.Reset : label;
-            sb.Append(AnsiCodes.Forward((columns - label.Length) / 2)).Append(text).Append(AnsiCodes.RestoreCursor);
+            sb.Append(AnsiCodes.Forward((columns - TextFit.Width(label)) / 2)).Append(text).Append(AnsiCodes.RestoreCursor);
         }
 
         return sb.ToString();
@@ -151,8 +151,8 @@ public sealed class Rule : Widget
         string label = Label(columns);
         if (label.Length > 0)
         {
-            int start = (columns - label.Length) / 2;
-            Raster.FillRoundedRect(image, start * cellWidth, top, label.Length * cellWidth, thickness, 0, SixelColor.Transparent);
+            int start = (columns - TextFit.Width(label)) / 2;
+            Raster.FillRoundedRect(image, start * cellWidth, top, TextFit.Width(label) * cellWidth, thickness, 0, SixelColor.Transparent);
         }
 
         return image;

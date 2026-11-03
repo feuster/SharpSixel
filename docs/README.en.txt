@@ -2,7 +2,7 @@
  SharpSixel  -  Encode and decode sixel graphics
 ================================================================================
 
- Version : 1.5.0  (current version of the program: SharpSixel --version)
+ Version : 1.6.0  (current version of the program: SharpSixel --version)
  Author  : Alexander Feuster
  License : MIT
  Deutsche Version: README.txt
@@ -175,6 +175,14 @@ Usage:
 
 The program queries the terminal with "Primary Device Attributes" (control
 sequence ESC [ c). If the terminal reports attribute 4, it can display sixel.
+A terminal that supports sixel is then also asked for the number of color registers and
+the maximum graphics size (XTSMGRAPHICS, ESC [ ? Pi ; 1 ; 0 S) and for the state of the
+sixel display mode DECSDM (mode 80, set = sixel scrolling disabled) and of mode 1070
+(private color registers) with DECRQM (ESC [ ? Ps $ p). What the terminal reports is
+listed after the result ("Color registers: 256", "Maximum graphics size: 1000x1000
+pixels", "Sixel scrolling: on", "Private color registers: on"); values it does not
+report are left out. With --show, encode limits the palette to the reported number of
+color registers if it is smaller than --colors (a note appears on standard error).
 Output: "Terminal supports sixel graphics." (exit code 0) or
 "Terminal does not support sixel graphics (or did not answer)." (exit code 1).
 If the terminal does not answer within about one second, or if input/output is
@@ -474,7 +482,10 @@ Important types:
   SixelDecoderOptions   Size limits, number of color registers, background color
   BmpCodec              Read and write BMP
   ImageScaler           Resize, Fit, FitSize, Stretch, StretchSize
-  SixelTerminal         Terminal query (sixel support, pixel size)
+  SixelTerminal         Terminal query (sixel support, pixel size, color registers, graphics size,
+                        DECSDM / mode 1070 state; constants for DECSDM and mode 1070)
+  SixelTerminalInfo     Result of the query (SupportsSixel, TextArea*/Cell*, ColorRegisters,
+                        GraphicsWidth/Height, SixelDisplayMode, PrivateColorRegisters)
   SixelException        Error for invalid data or exceeded limits
 
 The terminal query (SixelTerminal.Detect / Query) is independent of the actual
@@ -483,6 +494,12 @@ input character (or -1 on timeout). The terminal has to be in raw mode for
 this; providing that is up to the caller (SharpSixel.exe contains a ready-made
 variant: tested on Windows, the Unix path is implemented but not yet tested on
 Linux/macOS).
+If the terminal supports sixel, Query asks a second time (closed by DA1 again) for the color
+registers and graphics size (SixelTerminal.GraphicsRequest) and the modes DECSDM and 1070
+(SixelTerminal.ModeRequest); terminals that do not know these requests leave the values at 0
+or TerminalModeState.NotRecognized. SixelTerminal.SixelScrollingOn/Off (DECSDM) and
+PrivateColorRegistersOn/Off (mode 1070) are the matching switch sequences; the library does
+not switch any mode itself.
 
 
 13. TECHNICAL DETAILS AND LIMITS

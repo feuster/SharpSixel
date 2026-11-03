@@ -302,10 +302,10 @@ public abstract class FileDialog : Prompt<string>
         return pending;
     }
 
-    private string Fit(string text) => text.Length <= _width ? text : text.Substring(0, _width - 1) + Ellipsis;
+    private string Fit(string text) => TextFit.Clip(text, _width);
 
     private static string FitTail(string text, int width) =>
-        text.Length <= width ? text : Ellipsis + text.Substring(text.Length - (width - 1));
+        TextFit.Width(text) <= width ? text : Ellipsis + TextFit.TakeLast(text, width - 1);
 
     private bool Matches(string name)
     {

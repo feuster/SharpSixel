@@ -118,4 +118,77 @@ public class LiveRegionTests
         bar.Style.HeightRows = 2;
         Assert.Throws<ArgumentException>(() => region.Update(bar));
     }
-}
+
+    [Fact]
+    public void Resize_ErasesReservedRowsAndRendersForTheNewWidth()
+    {
+        var writer = new StringWriter();
+        var region = new LiveRegion(writer, new WidgetEnvironment(false, useAnsi: false, columns: 20));
+        region.Begin(2);
+        var rule = new Rule();
+        writer.GetStringBuilder().Clear();
+
+        region.Resize(10);
+
+        Assert.Equal("\u001b8\u001b[2K\u001b8\u001b[1B\u001b[2K\u001b8", writer.ToString());
+        writer.GetStringBuilder().Clear();
+        region.Update(rule);
+        Assert.Contains(new string('-', 10), writer.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain(new string('-', 11), writer.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Resize_SameWidthOrInactive_WritesNothing()
+    {
+        var writer = new StringWriter();
+        var region = new LiveRegion(writer, new WidgetEnvironment(false, useAnsi: false, columns: 20));
+        region.Resize(10);
+        region.Begin(1);
+        writer.GetStringBuilder().Clear();
+        region.Resize(10);
+        Assert.Equal(string.Empty, writer.ToString());
+        Assert.Throws<ArgumentOutOfRangeException>(() => region.Resize(-1));
+    }
+
+    [Fact]
+    public void ColumnsSource_ResizesOnceWhenTheWidthChanges()
+    {
+        var writer = new StringWriter();
+        int columns = 20;
+        var region = new LiveRegion(writer, new WidgetEnvironment(false, useAnsi: false, columns: 20), () => columns);
+        region.Begin(1);
+        var rule = new Rule();
+        writer.GetStringBuilder().Clear();
+
+        region.Update(rule);
+        string unchanged = writer.ToString();
+        Assert.Equal("\u001b8" + new string('-', 20) + "\u001b8", unchanged);
+
+        columns = 12;
+        writer.GetStringBuilder().Clear();
+        region.Update(rule);
+        string resized = writer.ToString();
+        Assert.StartsWith("\u001b8\u001b[2K\u001b8", resized, StringComparison.Ordinal);
+        Assert.EndsWith("\u001b8" + new string('-', 12) + "\u001b8", resized, StringComparison.Ordinal);
+
+        writer.GetStringBuilder().Clear();
+        region.Update(rule);
+        Assert.Equal("\u001b8" + new string('-', 12) + "\u001b8", writer.ToString());
+    }
+
+    [Fact]
+    public void ColumnsSource_UnknownWidthIsIgnored()
+    {
+        var writer = new StringWriter();
+        var unknownEnvironment = new LiveRegion(writer, Ascii, () => 15);
+        unknownEnvironment.Begin(1);
+        writer.GetStringBuilder().Clear();
+        unknownEnvironment.Update(new Rule());
+        Assert.Equal("\u001b8" + new string('-', 40) + "\u001b8", writer.ToString());
+
+        var zero = new LiveRegion(writer, new WidgetEnvironment(false, useAnsi: false, columns: 20), () => 0);
+        zero.Begin(1);
+        writer.GetStringBuilder().Clear();
+        zero.Update(new Rule());
+        Assert.Equal("\u001b8" + new string('-', 20) + "\u001b8", writer.ToString());
+    }}

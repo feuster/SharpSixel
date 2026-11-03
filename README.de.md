@@ -202,7 +202,7 @@ Ohne Skia decken `BmpCodec.Decode(bytes)` und `BmpCodec.Encode(image)` BMP-Datei
 | `SixelEncoder`, `SixelEncoderOptions` | Bild zu Sixel: `MaxColors`, `AlphaThreshold`, `EmitRasterAttributes`, `Dithering` |
 | `SixelDecoder`, `SixelDecoderOptions` | Sixel zu Bild: Größenlimits, Registerzahl, Hintergrundfarbe; `LooksLikeSixel` |
 | `BmpCodec`, `ImageScaler` | BMP lesen/schreiben, `Resize` / `Fit` / `FitSize` (Seitenverhältnis bleibt, so groß wie möglich) und `Stretch` / `StretchSize` (Grenzen voll genutzt, Seitenverhältnis ignoriert) |
-| `SixelTerminal`, `SixelTerminalInfo` | DA1- und Pixelgrößen-Abfrage |
+| `SixelTerminal`, `SixelTerminalInfo` | Abfrage von DA1, Pixelgröße, Farbregistern und Grafikgröße (XTSMGRAPHICS) sowie DECSDM / Modus 1070 |
 | `SkiaImageCodec` (`SharpSixel.Skia`) | PNG/JPEG/... umwandeln und `SKBitmap`-Interop |
 | `SixelException` | Ungültige Daten oder überschrittene Limits |
 
@@ -219,7 +219,7 @@ und Wert-Texte sind normaler Terminaltext neben der Grafik. Das Paket hat die Zi
 
 | Widget | Zweck |
 |---|---|
-| `ProgressBar`, `Spinner` | Fortschritt mit optionaler Beschriftung und Prozent- oder Wertanzeige; animierter Spinner |
+| `ProgressBar`, `ProgressGroup`, `Spinner` | Fortschritt mit optionaler Beschriftung und Prozent- oder Wertanzeige oder wanderndem Segment; mehrere Tasks untereinander; animierter Spinner |
 | `StatusDisplay` | Spinner mit änderbarem Statustext für Arbeit unbekannter Dauer; Meldungen scrollen darüber |
 | `BarChart` | Horizontales Balkendiagramm: Beschriftung, Balken, Wert |
 | `Table` | Spaltenköpfe und ausgerichtete Textzellen im Raster, optional Streifen |

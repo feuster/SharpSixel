@@ -16,7 +16,6 @@ namespace SharpSixel.Ui;
 public sealed class Table : Widget
 {
     private const int ColorAlphaLimit = 128;
-    private const string Ellipsis = "\u2026";
     private readonly Collection<TableColumn> _columns = new ColumnCollection();
     private readonly Collection<string[]> _rows = new RowCollection();
 
@@ -239,12 +238,8 @@ public sealed class Table : Widget
     {
         string text = line.Kind == LineKind.Header ? PromptRow.Clean(_columns[column].Header) : CellText(_rows[line.Index], column);
         int width = layout.Widths[column];
-        if (text.Length > width)
-        {
-            text = width > 1 ? text.Substring(0, width - 1) + Ellipsis : text.Substring(0, width);
-        }
-
-        int gap = width - text.Length;
+        text = TextFit.Clip(text, width);
+        int gap = width - TextFit.Width(text);
         int before = 0;
         switch (_columns[column].Alignment)
         {
@@ -274,12 +269,12 @@ public sealed class Table : Widget
         int width = 1;
         if (Style.ShowHeader)
         {
-            width = Math.Max(width, PromptRow.Clean(definition.Header).Length);
+            width = Math.Max(width, TextFit.Width(PromptRow.Clean(definition.Header)));
         }
 
         foreach (string[] row in _rows)
         {
-            width = Math.Max(width, CellText(row, column).Length);
+            width = Math.Max(width, TextFit.Width(CellText(row, column)));
         }
 
         return width;

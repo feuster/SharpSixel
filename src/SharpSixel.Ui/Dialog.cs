@@ -212,21 +212,24 @@ public sealed class Dialog : Prompt<int>
         _cellLengths.Clear();
         int start = 0;
         int length = 0;
+        int cells = 0;
         for (int i = 0; i < _buttons.Count; i++)
         {
             if (i > 0)
             {
                 sb.Append("  ");
+                cells += 2;
             }
 
             string label = ButtonLabel(i);
             string cell = i == _cursor ? "[ " + label + " ]" : "  " + label + "  ";
-            _cellStarts.Add(sb.Length);
-            _cellLengths.Add(cell.Length);
+            int cellWidth = TextFit.Width(cell);
+            _cellStarts.Add(cells);
+            _cellLengths.Add(cellWidth);
             chips.Add(new PromptChip
             {
-                Start = sb.Length,
-                Length = cell.Length,
+                Start = cells,
+                Length = cellWidth,
                 LabelStart = sb.Length + 2,
                 LabelLength = label.Length,
                 Color = i == _cursor ? Style.ActiveColor : Style.ButtonColor,
@@ -239,6 +242,7 @@ public sealed class Dialog : Prompt<int>
             }
 
             sb.Append(cell);
+            cells += cellWidth;
         }
 
         var row = new PromptRow

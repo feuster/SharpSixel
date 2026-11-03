@@ -41,6 +41,12 @@ public sealed class StatusDisplay : IDisposable
     {
     }
 
+    /// <summary>
+    /// Optional source of the current terminal width in cells (0 = unknown), set before the status is started: if the terminal is
+    /// resized the display adapts to the new width (see <see cref="LiveRegion.Resize"/>).
+    /// </summary>
+    public Func<int>? Columns { get; set; }
+
     internal StatusDisplay(TextWriter writer, WidgetEnvironment environment, Func<long> clock)
     {
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
@@ -139,7 +145,7 @@ public sealed class StatusDisplay : IDisposable
             {
                 _rows = _spinner.GetRows(_environment);
                 _writer.Write(AnsiCodes.HideCursor);
-                _region = new LiveRegion(_writer, _environment);
+                _region = new LiveRegion(_writer, _environment, Columns);
                 _region.Begin(_rows);
                 _dirty = true;
                 Redraw(force: true);

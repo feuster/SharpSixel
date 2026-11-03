@@ -21,15 +21,16 @@ internal enum MarkerShape
 /// <summary>Rounded face drawn behind a part of a row in sixel mode (a dialog button); the label is drawn on it as text.</summary>
 internal sealed class PromptChip
 {
-    /// <summary>Index of the first cell of the face in <see cref="PromptRow.Text"/> (cells after the text start).</summary>
+    /// <summary>Number of cells between the text start and the first cell of the face.</summary>
     public int Start { get; set; }
 
     /// <summary>Width of the face in cells.</summary>
     public int Length { get; set; }
 
-    /// <summary>Index of the label in <see cref="PromptRow.Text"/>.</summary>
+    /// <summary>Char index of the label in <see cref="PromptRow.Text"/>.</summary>
     public int LabelStart { get; set; }
 
+    /// <summary>Number of chars of the label.</summary>
     public int LabelLength { get; set; }
 
     public SixelColor Color { get; set; }

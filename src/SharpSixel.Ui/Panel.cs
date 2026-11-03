@@ -16,7 +16,6 @@ public sealed class Panel : Widget
 {
     private const int ColorAlphaLimit = 128;
     private const int TitleMargin = 4;
-    private const string Ellipsis = "\u2026";
     private readonly Collection<string> _lines = new LineCollection();
     private int? _width;
 
@@ -145,7 +144,7 @@ public sealed class Panel : Widget
             Style.BackgroundColor);
         if (layout.Title.Length > 0)
         {
-            Raster.FillRoundedRect(image, 2 * cellWidth, top, (layout.Title.Length + 2) * cellWidth, thickness, 0, SixelColor.Transparent);
+            Raster.FillRoundedRect(image, 2 * cellWidth, top, (TextFit.Width(layout.Title) + 2) * cellWidth, thickness, 0, SixelColor.Transparent);
         }
 
         return image;
@@ -161,23 +160,10 @@ public sealed class Panel : Widget
         return prefix.Length == 0 ? text : prefix + text + AnsiCodes.Reset;
     }
 
-    private static string Fit(string text, int width)
-    {
-        if (width <= 0)
-        {
-            return string.Empty;
-        }
-
-        if (text.Length <= width)
-        {
-            return text;
-        }
-
-        return width > 1 ? text.Substring(0, width - 1) + Ellipsis : text.Substring(0, width);
-    }
+    private static string Fit(string text, int width) => TextFit.Clip(text, width);
 
     private static string CellText(Layout layout, string line) =>
-        Fit(PromptRow.Clean(line), layout.Content).PadRight(layout.Content);
+        TextFit.PadRight(Fit(PromptRow.Clean(line), layout.Content), layout.Content);
 
     private string AsciiTop(Layout layout, bool ansi)
     {
@@ -191,15 +177,15 @@ public sealed class Panel : Widget
         string label = " " + layout.Title + " ";
         return Tint(corner + horizontal, Style.BorderColor, ansi)
             + Tint(label, Style.TitleColor, ansi)
-            + Tint(new string(horizontal, layout.Inner - 1 - label.Length) + corner, Style.BorderColor, ansi);
+            + Tint(new string(horizontal, layout.Inner - 1 - TextFit.Width(label)) + corner, Style.BorderColor, ansi);
     }
 
     private int FitContentWidth(string title)
     {
-        int width = title.Length > 0 ? title.Length + TitleMargin - (2 * Style.Padding) : 0;
+        int width = title.Length > 0 ? TextFit.Width(title) + TitleMargin - (2 * Style.Padding) : 0;
         foreach (string line in _lines)
         {
-            width = Math.Max(width, PromptRow.Clean(line).Length);
+            width = Math.Max(width, TextFit.Width(PromptRow.Clean(line)));
         }
 
         return width;

@@ -107,12 +107,47 @@ internal static class CliApp
 
         if (supported)
         {
+            WriteTerminalDetails(env.QueryTerminalInfo(), env.Output);
+
             // Visual confirmation: if the pattern shows up, sixel display really works.
             byte[] testImage = new SixelEncoder().EncodeToBytes(TestImage.Create());
             WriteSixelToStdout(testImage, endWithNewLine: true, env);
         }
 
         return supported ? 0 : 1;
+    }
+
+    /// <summary>Lists what the terminal reported beyond sixel support (color registers, graphics size, sixel modes).</summary>
+    private static void WriteTerminalDetails(SixelTerminalInfo? info, TextWriter output)
+    {
+        if (info == null)
+        {
+            return;
+        }
+
+        if (info.HasColorRegisters)
+        {
+            output.WriteLine($"Color registers: {info.ColorRegisters}");
+        }
+
+        if (info.HasGraphicsSize)
+        {
+            output.WriteLine($"Maximum graphics size: {info.GraphicsWidth}x{info.GraphicsHeight} pixels");
+        }
+
+        if (info.SixelDisplayMode != TerminalModeState.NotRecognized)
+        {
+            bool scrolling = info.SixelDisplayMode == TerminalModeState.Reset || info.SixelDisplayMode == TerminalModeState.PermanentlyReset;
+            output.WriteLine("Sixel scrolling: " + (scrolling ? "on" : "off"));
+        }
+
+        if (info.PrivateColorRegisters != TerminalModeState.NotRecognized)
+        {
+            bool priv = info.PrivateColorRegisters == TerminalModeState.Set || info.PrivateColorRegisters == TerminalModeState.PermanentlySet;
+            output.WriteLine("Private color registers: " + (priv ? "on" : "off"));
+        }
+
+        output.Flush();
     }
 
     private static void Encode(CliArguments arguments, CliEnvironment env)
@@ -170,10 +205,28 @@ internal static class CliApp
         image = FitImage(image, arguments, env);
         var encoder = new SixelEncoder(new SixelEncoderOptions
         {
-            MaxColors = arguments.Colors,
+            MaxColors = ColorsFor(arguments, env),
             Dithering = arguments.Dithering,
         });
         return encoder.EncodeToBytes(image);
+    }
+
+    /// <summary>The palette size: <c>--colors</c>, but for <c>--show</c> not more than the color registers the terminal reports.</summary>
+    private static int ColorsFor(CliArguments arguments, CliEnvironment env)
+    {
+        if (!arguments.Show)
+        {
+            return arguments.Colors;
+        }
+
+        SixelTerminalInfo? info = env.QueryTerminalInfo();
+        if (info == null || !info.HasColorRegisters || info.ColorRegisters < 2 || info.ColorRegisters >= arguments.Colors)
+        {
+            return arguments.Colors;
+        }
+
+        env.Error.WriteLine($"note: the terminal reports {info.ColorRegisters} color registers; limiting the palette to that.");
+        return info.ColorRegisters;
     }
 
     private static void RequireTerminalOutput(CliEnvironment env)

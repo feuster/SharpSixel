@@ -153,7 +153,7 @@ public class UiCliAppTests
     {
         Run run = Execute(new[] { "demo", "--mode", "ascii", "--duration", "1" }, true);
         Assert.Equal(0, run.Code);
-        Assert.Equal(90, run.Delays);
+        Assert.Equal(111, run.Delays);
         Assert.Contains("Download", run.Output);
         Assert.Contains("Loading", run.Output);
         Assert.Contains("Connecting to server done", run.Output);
@@ -566,6 +566,40 @@ public class UiCliAppTests
         Run run = Execute(new[] { "rule", "--width", "0" }, false);
         Assert.Equal(1, run.Code);
         Assert.NotEqual(string.Empty, run.Error);
+    }
+
+    [Fact]
+    public void Redirected_IndeterminateProgress_ShowsSegmentWithoutProgressText()
+    {
+        Run run = Execute(new[] { "progress", "--indeterminate" }, false);
+        Assert.Equal(0, run.Code);
+        Assert.DoesNotContain("%", run.Output, StringComparison.Ordinal);
+        Assert.Contains("[", run.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Redirected_Tasks_PrintsThreeAlignedBars()
+    {
+        Run run = Execute(new[] { "tasks" }, false);
+        Assert.Equal(0, run.Code);
+        string[] lines = run.Output.TrimEnd().Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+        Assert.Equal(3, lines.Length);
+        Assert.StartsWith("Download ", lines[0], StringComparison.Ordinal);
+        Assert.StartsWith("Unpack   ", lines[1], StringComparison.Ordinal);
+        Assert.StartsWith("Scan     ", lines[2], StringComparison.Ordinal);
+        Assert.Contains("100%", lines[0], StringComparison.Ordinal);
+        Assert.Contains("50%", lines[1], StringComparison.Ordinal);
+        Assert.DoesNotContain("%", lines[2], StringComparison.Ordinal);
+        Assert.Equal(lines[0].IndexOf('['), lines[2].IndexOf('['));
+    }
+
+    [Fact]
+    public void Terminal_Tasks_AnimatesForTheDuration()
+    {
+        Run run = Execute(new[] { "tasks", "--mode", "ascii", "--duration", "1", "--no-ansi" }, true);
+        Assert.Equal(0, run.Code);
+        Assert.Equal(21, run.Delays);
+        Assert.Contains("Scan", run.Output, StringComparison.Ordinal);
     }
 
     [Fact]

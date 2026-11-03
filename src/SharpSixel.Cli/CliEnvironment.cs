@@ -16,7 +16,8 @@ internal sealed class CliEnvironment
         TextWriter error,
         Func<bool> detectSixelTerminal,
         Func<TerminalSize?> queryTerminalSize,
-        Func<bool> isOutputTerminal)
+        Func<bool> isOutputTerminal,
+        Func<SixelTerminalInfo?>? queryTerminalInfo = null)
     {
         Stdin = stdin;
         Stdout = stdout;
@@ -25,6 +26,7 @@ internal sealed class CliEnvironment
         DetectSixelTerminal = detectSixelTerminal;
         QueryTerminalSize = queryTerminalSize;
         IsOutputTerminal = isOutputTerminal;
+        QueryTerminalInfo = queryTerminalInfo ?? (() => null);
     }
 
     /// <summary>Binary standard input (used for input "-").</summary>
@@ -44,6 +46,9 @@ internal sealed class CliEnvironment
 
     /// <summary>Determines the drawable terminal area in pixels; null if no terminal is attached.</summary>
     public Func<TerminalSize?> QueryTerminalSize { get; }
+
+    /// <summary>Queries sixel support, geometry, color registers and sixel modes of the attached terminal; null if there is none or it does not answer.</summary>
+    public Func<SixelTerminalInfo?> QueryTerminalInfo { get; }
 
     /// <summary>True if standard output is a terminal (not redirected to a file or pipe).</summary>
     public Func<bool> IsOutputTerminal { get; }

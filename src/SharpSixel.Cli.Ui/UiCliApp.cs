@@ -9,7 +9,13 @@ internal static class UiCliApp
 {
     internal const string HelpText = @"SharpSixelUI - demo of the SharpSixel.Ui widgets
 
-Usage: SharpSixelUI <progress|spinner|status|chart|table|button|panel|clock|date|tree|rule|checkbox|radio|layout|image|prompts|open|save|osc|demo> [options]
+Usage: SharpSixelUI <progress|tasks|spinner|status|chart|table|button|panel|clock|date|tree|rule|checkbox|radio|layout|image|prompts|open|save|osc|demo> [options]
+
+progress shows a progress bar running for --duration seconds; --indeterminate shows a moving segment instead (no progress
+text), --text sets none|percent|fraction, --caption the label.
+
+tasks shows three progress bars below each other with aligned captions (Download, Unpack, and Scan with unknown progress);
+the options of progress apply to all bars (--caption sets the first label).
 
 table shows a table with demo data (--caption sets the caption); --border sets the grid color, --active the header text
 color, --inactive the header background, --track the background of every second row.
@@ -112,7 +118,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             return 0;
         }
 
-        if (arguments.Command != "progress" && arguments.Command != "spinner" && arguments.Command != "status"
+        if (arguments.Command != "progress" && arguments.Command != "tasks" && arguments.Command != "spinner" && arguments.Command != "status"
             && arguments.Command != "chart" && arguments.Command != "table" && arguments.Command != "button"
             && arguments.Command != "panel" && arguments.Command != "clock" && arguments.Command != "date" && arguments.Command != "tree"
             && arguments.Command != "rule" && arguments.Command != "checkbox" && arguments.Command != "radio" && arguments.Command != "layout"
@@ -245,7 +251,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         }
 
         using (env.EnterOutputMode())
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(view.GetRows(widgets));
             region.Update(view);
@@ -408,6 +414,11 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
                     RunProgress(arguments, widgets, env, live, all ? "Download" : null);
                 }
 
+                if ((all || command == "tasks") && !(live && env.IsCancelled()))
+                {
+                    RunTasks(arguments, widgets, env, live);
+                }
+
                 if ((all || command == "spinner") && !(live && env.IsCancelled()))
                 {
                     RunSpinner(arguments, widgets, env, live, all ? "Loading" : null);
@@ -486,15 +497,8 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
 
     private static void RunProgress(UiCliArguments a, WidgetEnvironment widgets, UiCliEnvironment env, bool live, string? defaultCaption)
     {
-        var bar = new ProgressBar { Caption = a.Caption ?? defaultCaption, ProgressText = a.Text };
-        ProgressBarStyle style = bar.Style;
-        if (a.Width is int width) { style.Width = width; }
-        if (a.Rows is int rows) { style.HeightRows = rows; }
-        if (a.Radius is int radius) { style.CornerRadius = radius; }
-        if (a.Fill is SixelColor fill) { style.FillColor = fill; }
-        if (a.Track is SixelColor track) { style.TrackColor = track; }
-        if (a.Border is SixelColor border) { style.BorderColor = border; }
-        if (a.Background is SixelColor background) { style.BackgroundColor = background; }
+        var bar = new ProgressBar { Caption = a.Caption ?? defaultCaption, ProgressText = a.Text, IsIndeterminate = a.Indeterminate };
+        ApplyProgressStyle(a, bar.Style);
 
         if (!live)
         {
@@ -504,13 +508,61 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         }
 
         int steps = Math.Max(1, (int)(a.DurationSeconds * 1000 / ProgressFrameMs));
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(bar.GetRows(widgets));
             for (int step = 0; step <= steps && !env.IsCancelled(); step++)
             {
                 bar.Value = bar.Maximum * step / steps;
+                bar.Advance();
                 region.Update(bar);
+                env.Delay(ProgressFrameMs);
+            }
+        }
+    }
+
+    private static void ApplyProgressStyle(UiCliArguments a, ProgressBarStyle style)
+    {
+        if (a.Width is int width) { style.Width = width; }
+        if (a.Rows is int rows) { style.HeightRows = rows; }
+        if (a.Radius is int radius) { style.CornerRadius = radius; }
+        if (a.Fill is SixelColor fill) { style.FillColor = fill; }
+        if (a.Track is SixelColor track) { style.TrackColor = track; }
+        if (a.Border is SixelColor border) { style.BorderColor = border; }
+        if (a.Background is SixelColor background) { style.BackgroundColor = background; }
+    }
+
+    private static void RunTasks(UiCliArguments a, WidgetEnvironment widgets, UiCliEnvironment env, bool live)
+    {
+        var group = new ProgressGroup();
+        ApplyProgressStyle(a, group.Style);
+        ProgressBar download = group.AddTask(a.Caption ?? "Download");
+        ProgressBar unpack = group.AddTask("Unpack");
+        ProgressBar scan = group.AddTask("Scan");
+        download.ProgressText = a.Text;
+        unpack.ProgressText = a.Text;
+        scan.IsIndeterminate = true;
+
+        if (!live)
+        {
+            download.Value = download.Maximum;
+            unpack.Value = unpack.Maximum / 2;
+            env.Output.WriteLine(group.Render(widgets).Replace("\n", env.Output.NewLine));
+            return;
+        }
+
+        int steps = Math.Max(1, (int)(a.DurationSeconds * 1000 / ProgressFrameMs));
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
+        {
+            region.Begin(group.GetRows(widgets));
+            for (int step = 0; step <= steps && !env.IsCancelled(); step++)
+            {
+                download.Value = download.Maximum * Math.Min(1.0, step * 1.5 / steps);
+                unpack.Value = unpack.Maximum * Math.Max(0.0, Math.Min(1.0, ((step * 1.5 / steps) - 0.5) * 2));
+                scan.IsIndeterminate = step < steps;
+                scan.Value = scan.Maximum;
+                group.Advance();
+                region.Update(group);
                 env.Delay(ProgressFrameMs);
             }
         }
@@ -539,7 +591,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         }
 
         int steps = Math.Max(1, (int)(a.DurationSeconds * 1000 / ChartFrameMs));
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(chart.GetRows(widgets));
             for (int step = 0; step <= steps && !env.IsCancelled(); step++)
@@ -579,7 +631,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             return;
         }
 
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(table.GetRows(widgets));
             region.Update(table);
@@ -606,7 +658,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             return;
         }
 
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(panel.GetRows(widgets));
             region.Update(panel);
@@ -631,7 +683,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
 
         int steps = Math.Max(1, (int)(a.DurationSeconds * 1000 / ClockFrameMs));
         long shown = -1;
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(clock.GetRows(widgets));
             for (int step = 0; step < steps && !env.IsCancelled(); step++)
@@ -669,7 +721,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             return;
         }
 
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(date.GetRows(widgets));
             region.Update(date);
@@ -699,7 +751,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             return;
         }
 
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(tree.GetRows(widgets));
             region.Update(tree);
@@ -714,7 +766,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
             return;
         }
 
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(widget.GetRows(widgets));
             region.Update(widget);
@@ -811,7 +863,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         try
         {
             using (env.EnterInputMode())
-            using (var region = new LiveRegion(env.Output, widgets))
+            using (var region = new LiveRegion(env.Output, widgets, env.Columns))
             {
                 region.Begin(button.GetRows(widgets));
                 if (!a.NoMouse)
@@ -879,7 +931,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         }
 
         int stateSteps = Math.Max(1, (int)(a.DurationSeconds * 1000 / ButtonFrameMs) / states.Length);
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(button.GetRows(widgets));
             foreach (ButtonState state in states)
@@ -899,7 +951,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         string[] stages = a.Caption != null
             ? new[] { a.Caption }
             : new[] { "Loading configuration", "Connecting to server", "Fetching data", "Processing records" };
-        var status = new StatusDisplay(env.Output, widgets);
+        var status = new StatusDisplay(env.Output, widgets) { Columns = env.Columns };
         SpinnerStyle style = status.SpinnerStyle;
         if (a.Rows is int rows) { style.HeightRows = rows; }
         if (a.Active is SixelColor active) { style.ActiveColor = active; }
@@ -943,7 +995,7 @@ Colors: #RRGGBB, #RRGGBBAA or transparent.";
         }
 
         int steps = Math.Max(1, (int)(a.DurationSeconds * 1000 / SpinnerFrameMs));
-        using (var region = new LiveRegion(env.Output, widgets))
+        using (var region = new LiveRegion(env.Output, widgets, env.Columns))
         {
             region.Begin(spinner.GetRows(widgets));
             for (int step = 0; step < steps && !env.IsCancelled(); step++)

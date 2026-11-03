@@ -155,7 +155,7 @@ internal sealed class PromptView : Widget
         int content = 1;
         foreach (PromptRow row in Rows)
         {
-            content = Math.Max(content, (Indented(row) ? MarkerColumns + 1 : 0) + row.Text.Length + (row.Caret ? 1 : 0));
+            content = Math.Max(content, (Indented(row) ? MarkerColumns + 1 : 0) + TextFit.Width(row.Text) + (row.Caret ? 1 : 0));
         }
 
         return content;
@@ -188,10 +188,13 @@ internal sealed class PromptView : Widget
             int position = 0;
             foreach (PromptChip chip in row.Chips)
             {
-                sb.Append(AnsiCodes.Forward(chip.LabelStart - position))
+                // LabelStart and LabelLength are char indexes into the text; the cursor moves in cells.
+                string label = row.Text.Substring(chip.LabelStart, chip.LabelLength);
+                int labelCell = TextFit.Width(row.Text.Substring(0, chip.LabelStart));
+                sb.Append(AnsiCodes.Forward(labelCell - position))
                     .Append(AnsiCodes.Foreground(chip.TextColor)).Append(AnsiCodes.Background(chip.Color))
-                    .Append(row.Text.Substring(chip.LabelStart, chip.LabelLength)).Append(AnsiCodes.Reset);
-                position = chip.LabelStart + chip.LabelLength;
+                    .Append(label).Append(AnsiCodes.Reset);
+                position = labelCell + TextFit.Width(label);
             }
         }
         else
@@ -201,7 +204,7 @@ internal sealed class PromptView : Widget
             string body = Body(row, environment);
             if (back.HasValue)
             {
-                int pad = bar ? Math.Max(0, content - textStart - row.Text.Length) : 0;
+                int pad = bar ? Math.Max(0, content - textStart - TextFit.Width(row.Text)) : 0;
                 if (body.Length > 0 || pad > 0)
                 {
                     sb.Append(AnsiCodes.Background(back.Value));

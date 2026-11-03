@@ -2,7 +2,7 @@
 
 Terminal UI widgets drawn as sixel graphics, with automatic ASCII fallback. No dependencies except `SharpSixel`.
 
-  `ProgressBar` (optional caption and percent/fraction text)
+  `ProgressBar` (optional caption and percent/fraction text, or a moving segment with `IsIndeterminate`), `ProgressGroup` (several tasks with aligned captions)
   `Spinner` and `StatusDisplay`: spinner with changeable status text for work of unknown duration (`Start`, `Text`, `WriteLine`, `Refresh`, `Stop`; timer animation or manual refresh)
 - `BarChart`: horizontal bar chart with labels, values, per-item colors and optional caption (`Add`, `Items`, `Maximum`, `ShowValues`; one ASCII line per bar)
 - `Table`: table with column headers, aligned text cells and a grid, optional caption (`AddColumn`, `AddRow`, `Columns`, `Rows`; `TableColumn.Width`, `TableAlignment`; sixel: pixel-line grid, ASCII: `+ - |` grid; same rows in both modes)
@@ -18,7 +18,7 @@ Terminal UI widgets drawn as sixel graphics, with automatic ASCII fallback. No d
 - Prompts (interactive, key driven, sixel markers or ASCII, `Show` returns the validated answer): `Dialog` (message with buttons, returns the button index), `SelectionPrompt<T>` (one item), `MultiSelectionPrompt<T>` (any number; `MinSelected`/`MaxSelected`) and `TextPrompt` (`AllowEmpty`, `MinLength`, `MaxLength`, `Pattern`, `DefaultValue`, `IsSecret`); all accept a custom `Validator` returning a `ValidationResult`
 - File dialogs (prompts that browse the file system and return the full path of the chosen file; nothing is written): `OpenFileDialog` (choose an existing file) and `SaveFileDialog` (name field, `FileName`, `ConfirmOverwrite`); common options `InitialDirectory`, `Filter` (e.g. `*.bmp;*.sixel`), `ShowHidden`, `PageSize`, `Width`, `Instructions`; Esc cancels with an `OperationCanceledException`
 - `WidgetEnvironment` selects sixel or ASCII (`RenderMode.Auto` uses the terminal's sixel support)
-- `LiveRegion` redraws a widget in place (ANSI cursor save/restore, scroll safe); `EnableMouse`/`TryGetLocal` map mouse reports to region coordinates
+- `LiveRegion` redraws a widget in place (ANSI cursor save/restore, scroll safe; `Resize` / a width source adapts it to a resized terminal); `EnableMouse`/`TryGetLocal` map mouse reports to region coordinates
 - Mouse: `ShowWithMouse(writer, env, readInput)` on the prompts (left click chooses a dialog button / selection item, toggles a multi-selection item, opens a directory / chooses a file in a file dialog, wheel moves the cursor), `VtInputParser` turns VT input characters into `InputEvent`s (keys, SGR mouse, cursor position), `Button.Contains` hit-tests a button; the terminal must deliver input in VT mode (not tested in every terminal)
 - Styles (`ProgressBarStyle`, `SpinnerStyle`, `BarChartStyle`, `TableStyle`, `ButtonStyle`, `PanelStyle`, `ClockStyle`, `DateDisplayStyle`, `TreeStyle`, `RuleStyle`, `ToggleStyle`, `ImageViewStyle`, `PromptStyle`) customize colors, size, border and ASCII characters
 

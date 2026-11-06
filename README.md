@@ -13,40 +13,51 @@ English | [Deutsch](README.de.md)
 described by printable control characters, so a terminal can draw it directly, with no external viewer. Many modern
 terminals support it (see [Terminal support](#terminal-support)).
 
+## Contents
+
+- [SharpSixel](#sharpsixel)
+  - [Contents](#contents)
+  - [Screenshots](#screenshots)
+  - [Features](#features)
+  - [Overview](#overview)
+  - [Quick start](#quick-start)
+  - [Command line](#command-line)
+  - [Library](#library)
+  - [Widgets](#widgets)
+  - [Terminal control (OSC)](#terminal-control-osc)
+  - [Terminal support](#terminal-support)
+  - [Build, test, publish](#build-test-publish)
+  - [Project layout](#project-layout)
+  - [Documentation](#documentation)
+  - [Limits and status](#limits-and-status)
+  - [Specifications](#specifications)
+  - [Note on the use of AI (voluntary)](#note-on-the-use-of-ai-voluntary)
+  - [License](#license)
+
+## Screenshots
+
 ```console
 $ SharpSixel check
 Terminal supports sixel graphics.
 [a small test pattern appears: color bars, gray ramp, checkerboard, red-to-blue gradient]
+```
+*`SharpSixel check` in Windows Terminal: the built-in test pattern is drawn as sixel graphics.*
+![SharpSixel check in Windows Terminal: color bars, gray ramp, checkerboard and red-to-blue gradient](docs/images/check.png)
 
+```console
 $ SharpSixel encode photo.jpg --show --fit
 [the photo appears in the terminal, scaled to the window]
 ```
 
-![SharpSixel check in Windows Terminal: color bars, gray ramp, checkerboard and red-to-blue gradient](docs/images/check.png)
-
-*`SharpSixel check` in Windows Terminal: the built-in test pattern is drawn as sixel graphics.*
-
+*A photo shown as sixel graphics in Windows Terminal. Photo: ["The Superb Parrot"](https://creativecommons.org/publicdomain/zero/1.0/) by Bernard Spragg, CC0 1.0.*
 ![A photo of a parrot displayed as sixel graphics in Windows Terminal](docs/images/demo.png)
 
-*A photo shown as sixel graphics in Windows Terminal. Photo: ["The Superb Parrot"](https://creativecommons.org/publicdomain/zero/1.0/) by Bernard Spragg, CC0 1.0.*
-
-## Contents
-
-- [Features](#features)
-- [Overview](#overview)
-- [Quick start](#quick-start)
-- [Command line](#command-line)
-- [Library](#library)
-- [Widgets](#widgets)
-- [Terminal control (OSC)](#terminal-control-osc)
-- [Terminal support](#terminal-support)
-- [Build, test, publish](#build-test-publish)
-- [Project layout](#project-layout)
-- [Documentation](#documentation)
-- [Limits and status](#limits-and-status)
-- [Specifications](#specifications)
-- [Note on the use of AI](#note-on-the-use-of-ai-voluntary)
-- [License](#license)
+```console
+$ SharpSixelUI demo
+[UI widgets are shown in the terminal]
+```
+*`SharpSixelUI demo` in Windows Terminal: the UI demonstrator program showing the available widgets in live*
+![A photo of the SharpSixelUI demonstrator program in Windows Terminal](docs/images/demoui.png)
 
 ## Features
 
@@ -373,6 +384,6 @@ Claude by Anthropic (Claude Sonnet 5.5; only this one model version was used).
 
 ## License
 
-[MIT](LICENSE), Copyright (c) 2026 Alexander Feuster
+[MIT](LICENSE), Copyright © 2026 Alexander Feuster, <https://github.com/feuster/SharpSixel>
 
 SkiaSharp, used for PNG/JPEG support, is licensed under the MIT license.

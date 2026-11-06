@@ -657,5 +657,7 @@ Typen:
 5. LIZENZ
 ---------
 MIT (siehe LICENSE). Copyright (c) 2026 Alexander Feuster.
+Homepage: https://github.com/feuster/SharpSixel
+
 Teile dieses Projekts wurden mit Unterstützung des KI-Sprachmodells Claude von
 Anthropic erstellt (siehe README.txt, Abschnitt 16).

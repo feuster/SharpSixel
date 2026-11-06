@@ -559,7 +559,7 @@ is rejected with an error message.
 SharpSixel is released under the MIT license (see the file LICENSE in the
 source folder).
 
-Copyright (c) 2026 Alexander Feuster
+Copyright (c) 2026 Alexander Feuster, Homepage: https://github.com/feuster/SharpSixel
 
 Components used: SkiaSharp (MIT license) for PNG/JPEG support in SharpSixel.exe
 and SharpSixel.Skia.

@@ -13,40 +13,51 @@
 Ein Bild wird durch druckbare Steuerzeichen beschrieben, sodass ein Terminal es direkt zeichnen kann, ohne externes
 Anzeigeprogramm. Viele moderne Terminals unterstützen es (siehe [Terminal-Unterstützung](#terminal-unterstützung)).
 
+## Inhalt
+
+- [SharpSixel](#sharpsixel)
+  - [Inhalt](#inhalt)
+  - [Screenshots](#screenshots)
+  - [Funktionen](#funktionen)
+  - [Überblick](#überblick)
+  - [Schnellstart](#schnellstart)
+  - [Kommandozeile](#kommandozeile)
+  - [Bibliothek](#bibliothek)
+  - [Widgets](#widgets)
+  - [Terminalsteuerung (OSC)](#terminalsteuerung-osc)
+  - [Terminal-Unterstützung](#terminal-unterstützung)
+  - [Build, Tests, Publish](#build-tests-publish)
+  - [Projektstruktur](#projektstruktur)
+  - [Dokumentation](#dokumentation)
+  - [Grenzen und Status](#grenzen-und-status)
+  - [Spezifikationen](#spezifikationen)
+  - [Hinweis zur Nutzung von KI (freiwillig)](#hinweis-zur-nutzung-von-ki-freiwillig)
+  - [Lizenz](#lizenz)
+
+
+## Screenshots
+
 ```console
 $ SharpSixel check
 Terminal supports sixel graphics.
 [ein kleines Testbild erscheint: Farbbalken, Graustufenverlauf, Schachbrett, Verlauf von Rot nach Blau]
+```
+*`SharpSixel check` im Windows Terminal: Das eingebaute Testbild wird als Sixel-Grafik gezeichnet.*
+![SharpSixel check im Windows Terminal: Farbbalken, Graustufenverlauf, Schachbrett und Verlauf von Rot nach Blau](docs/images/check.png)
 
+```console
 $ SharpSixel encode foto.jpg --show --fit
 [das Foto erscheint im Terminal, angepasst an die Fenstergröße]
 ```
-
-![SharpSixel check im Windows Terminal: Farbbalken, Graustufenverlauf, Schachbrett und Verlauf von Rot nach Blau](docs/images/check.png)
-
-*`SharpSixel check` im Windows Terminal: Das eingebaute Testbild wird als Sixel-Grafik gezeichnet.*
-
+*Ein Foto als Sixel-Grafik im Windows Terminal. Foto: ["The Superb Parrot"](https://creativecommons.org/publicdomain/zero/1.0/) von Bernard Spragg, CC0 1.0.*
 ![Foto eines Papageis, als Sixel-Grafik im Windows Terminal dargestellt](docs/images/demo.png)
 
-*Ein Foto als Sixel-Grafik im Windows Terminal. Foto: ["The Superb Parrot"](https://creativecommons.org/publicdomain/zero/1.0/) von Bernard Spragg, CC0 1.0.*
-
-## Inhalt
-
-- [Funktionen](#funktionen)
-- [Überblick](#überblick)
-- [Schnellstart](#schnellstart)
-- [Kommandozeile](#kommandozeile)
-- [Bibliothek](#bibliothek)
-- [Widgets](#widgets)
-- [Terminalsteuerung (OSC)](#terminalsteuerung-osc)
-- [Terminal-Unterstützung](#terminal-unterstützung)
-- [Build, Tests, Publish](#build-tests-publish)
-- [Projektstruktur](#projektstruktur)
-- [Dokumentation](#dokumentation)
-- [Grenzen und Status](#grenzen-und-status)
-- [Spezifikationen](#spezifikationen)
-- [Hinweis zur Nutzung von KI](#hinweis-zur-nutzung-von-ki-freiwillig)
-- [Lizenz](#lizenz)
+```console
+$ SharpSixelUI demo
+[UI Widgets werden im terminal gezeigt]
+```
+*`SharpSixelUI demo` im Windows Terminal: das UI Demonstrator Program zeigt die UI Widgets live*
+![Ein Foto des SharpSixelUI demonstrator Programms im Windows Terminal](docs/images/demoui.png)
 
 ## Funktionen
 
@@ -381,6 +392,6 @@ Anthropic erstellt (Claude Sonnet 5.5; es wurde ausschließlich diese eine Model
 
 ## Lizenz
 
-[MIT](LICENSE), Copyright (c) 2026 Alexander Feuster
+[MIT](LICENSE), Copyright © 2026 Alexander Feuster, <https://github.com/feuster/SharpSixel>
 
 SkiaSharp, das für die PNG/JPEG-Unterstützung verwendet wird, steht unter der MIT-Lizenz.

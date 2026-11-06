@@ -569,7 +569,7 @@ Aufruf mit "-c Debug" wird mit einer Fehlermeldung abgelehnt.
 ----------
 SharpSixel steht unter der MIT-Lizenz (siehe Datei LICENSE im Quellordner).
 
-Copyright (c) 2026 Alexander Feuster
+Copyright (c) 2026 Alexander Feuster, Homepage: https://github.com/feuster/SharpSixel
 
 Verwendete Komponenten: SkiaSharp (MIT-Lizenz) für PNG/JPEG-Unterstützung
 in SharpSixel.exe und SharpSixel.Skia.
